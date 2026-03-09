@@ -1047,13 +1047,13 @@ function generateHTML(result) {
             All <span class="count" id="countAll"></span>
           </button>
           <button class="filter-btn" data-filter="local" id="filterLocal">
-             <img src="${icons['folder']}" class="icon-img inline" alt="local"> Local <span class="count" id="countLocal"></span>
+             Local <span class="count" id="countLocal"></span>
           </button>
            <button class="filter-btn" data-filter="external" id="filterExternal">
-             <img src="${icons['package']}" class="icon-img inline" alt="package" style="filter: grayscale(100%);"> External <span class="count" id="countExternal"></span>
+             External <span class="count" id="countExternal"></span>
           </button>
            <button class="filter-btn" data-filter="orphan" id="filterOrphan">
-             🗑 Orphan <span class="count" id="countOrphan"></span>
+             Orphan <span class="count" id="countOrphan"></span>
           </button>
         </div>
         
