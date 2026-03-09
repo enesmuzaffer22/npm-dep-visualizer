@@ -158,6 +158,7 @@ function analyze(options) {
             importedBy: [],
             size: fileSize,
             isOrphan: false,
+            isDeadCode: false,
         });
     }
     // Phase 2: Build reverse references (importedBy)
@@ -172,12 +173,17 @@ function analyze(options) {
             }
         }
     }
-    // Phase 3: Detect orphans
+    // Phase 3: Detect orphans and dead code
     let orphanCount = 0;
-    for (const [, node] of fileNodes) {
+    let deadCodeCount = 0;
+    for (const [filePath, node] of fileNodes) {
         if (node.importedBy.length === 0 && fileNodes.size > 1) {
             node.isOrphan = true;
             orphanCount++;
+            if (!(0, parser_1.hasExports)(filePath)) {
+                node.isDeadCode = true;
+                deadCodeCount++;
+            }
         }
     }
     // Phase 4: Detect circular dependencies
@@ -200,6 +206,7 @@ function analyze(options) {
             totalExternalImports,
             totalSize,
             orphanCount,
+            deadCodeCount,
             circularDependencies: circularDeps,
             hotspots,
         },

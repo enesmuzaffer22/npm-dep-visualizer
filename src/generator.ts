@@ -40,6 +40,7 @@ function buildTreeData(result: AnalysisResult) {
     importCount?: number;
     size?: number;
     isOrphan?: boolean;
+    isDeadCode?: boolean;
   }
 
   const root: TreeNode = {
@@ -78,6 +79,7 @@ function buildTreeData(result: AnalysisResult) {
           importCount: fileNode.imports.length,
           size: fileNode.size,
           isOrphan: fileNode.isOrphan,
+          isDeadCode: fileNode.isDeadCode,
         });
       } else {
         let dir = current.children.find(c => c.name === part && c.type === 'directory');
@@ -813,6 +815,50 @@ export function generateHTML(result: AnalysisResult): string {
       font-weight: 500;
     }
 
+    .tree-badge.dead-code {
+      background: rgba(180, 0, 0, 0.07);
+      color: #b91c1c;
+      border: 1px solid rgba(180, 0, 0, 0.3);
+      font-weight: 600;
+    }
+    [data-theme='dark'] .tree-badge.dead-code {
+      background: rgba(255, 80, 80, 0.1);
+      color: #f87171;
+      border-color: rgba(255, 80, 80, 0.35);
+    }
+
+    .dead-code-panel {
+      background: var(--bg-secondary);
+      border: 1px solid var(--border-color);
+      border-radius: var(--radius-md);
+      overflow: hidden;
+    }
+
+    .dead-code-panel-header {
+      padding: 14px 20px;
+      border-bottom: 1px solid var(--border-color);
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      font-weight: 600;
+      font-size: 14px;
+    }
+
+    .dead-code-item {
+      padding: 10px 20px;
+      font-size: 12px;
+      font-family: 'JetBrains Mono', monospace;
+      color: var(--text-secondary);
+      border-bottom: 1px solid var(--border-color);
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      cursor: pointer;
+      transition: background 0.15s ease;
+    }
+    .dead-code-item:hover { background: var(--bg-hover); }
+    .dead-code-item:last-child { border-bottom: none; }
+
     .tree-children {
       overflow: hidden;
     }
@@ -966,6 +1012,60 @@ export function generateHTML(result: AnalysisResult): string {
       border-color: var(--border-accent);
     }
 
+    .graph-settings {
+      position: absolute;
+      top: 16px;
+      left: 16px;
+      background: var(--bg-tertiary);
+      border: 1px solid var(--border-color);
+      border-radius: var(--radius-sm);
+      padding: 12px 16px;
+      font-size: 11px;
+      display: flex;
+      flex-direction: column;
+      gap: 10px;
+      min-width: 180px;
+      z-index: 5;
+    }
+
+    .graph-settings-title {
+      font-weight: 600;
+      font-size: 12px;
+      color: var(--text-primary);
+      margin-bottom: 2px;
+    }
+
+    .graph-setting-row {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 8px;
+      color: var(--text-secondary);
+    }
+
+    .graph-setting-row label {
+      white-space: nowrap;
+    }
+
+    .graph-setting-row input[type=range] {
+      width: 70px;
+      accent-color: var(--text-primary);
+    }
+
+    .graph-setting-row input[type=checkbox] {
+      accent-color: var(--text-primary);
+    }
+
+    .graph-setting-row select {
+      background: var(--bg-surface);
+      color: var(--text-primary);
+      border: 1px solid var(--border-color);
+      border-radius: 4px;
+      padding: 2px 4px;
+      font-size: 11px;
+      cursor: pointer;
+    }
+
     .graph-tooltip {
       position: absolute;
       background: var(--bg-surface);
@@ -1046,6 +1146,9 @@ export function generateHTML(result: AnalysisResult): string {
            <button class="filter-btn" data-filter="orphan" id="filterOrphan">
              Orphan <span class="count" id="countOrphan"></span>
           </button>
+          <button class="filter-btn" data-filter="dead" id="filterDead">
+               Dead <span class="count" id="countDead"></span>
+          </button>
         </div>
         
         <button class="theme-toggle-btn" id="themeToggleBtn" title="Toggle Theme">
@@ -1096,10 +1199,28 @@ export function generateHTML(result: AnalysisResult): string {
             <button class="graph-control-btn" id="zoomOutBtn" title="Zoom Out">−</button>
             <button class="graph-control-btn" id="fitBtn" title="Fit to Screen">⊡</button>
           </div>
+          <div class="graph-settings">
+            <div class="graph-settings-title">Settings</div>
+            <div class="graph-setting-row">
+              <label>Direction</label>
+              <select id="layoutDirectionSelect">
+                <option value="TB" selected>Top → Bottom</option>
+                <option value="LR">Left → Right</option>
+              </select>
+            </div>
+            <div class="graph-setting-row">
+              <label>Spacing</label>
+              <input type="range" id="spacingSlider" min="50" max="200" value="150">
+            </div>
+            <div class="graph-setting-row">
+              <label>Group by Folder</label>
+              <input type="checkbox" id="groupByFolderToggle" checked>
+            </div>
+          </div>
           <div class="graph-legend">
             <div class="graph-legend-item"><div class="graph-legend-dot" style="background: var(--accent-blue);"></div> Local File</div>
             <div class="graph-legend-item"><div class="graph-legend-dot" style="background: var(--accent-orange);"></div> External Package</div>
-            <div class="graph-legend-item"><div class="graph-legend-dot" style="border: 2px dashed var(--accent-purple); background: transparent;"></div> Directory Cluster</div>
+            <div class="graph-legend-item"><div class="graph-legend-dot" style="border: 2px dashed rgba(180,0,0,0.7); background: rgba(180,0,0,0.08);"></div> Dead Code</div>
           </div>
         </div>
       </div>
@@ -1156,6 +1277,15 @@ export function generateHTML(result: AnalysisResult): string {
         </div>
         <div id="circularContent"></div>
       </div>
+
+      <!-- Dead Code Panel -->
+      <div class="dead-code-panel" id="deadCodePanel" style="display: none;">
+        <div class="dead-code-panel-header">
+            <span>Dead Code Files</span>
+          <span style="margin-left:auto;font-size:11px;color:var(--text-muted);font-weight:400;">Not imported · No exports</span>
+        </div>
+        <div id="deadCodeContent"></div>
+      </div>
     </div>
   </div>
 
@@ -1209,6 +1339,8 @@ export function generateHTML(result: AnalysisResult): string {
       document.getElementById('countLocal').textContent = DATA.stats.totalFiles;
       document.getElementById('countExternal').textContent = DATA.stats.totalExternalPackages;
       document.getElementById('countOrphan').textContent = DATA.stats.orphanCount || 0;
+      const deadEl = document.getElementById('countDead');
+      if (deadEl) deadEl.textContent = DATA.stats.deadCodeCount || 0;
 
       // Show circular dependencies
       if (DATA.stats.circularDependencies && DATA.stats.circularDependencies.length > 0) {
@@ -1226,6 +1358,27 @@ export function generateHTML(result: AnalysisResult): string {
         }).join('');
       }
 
+      // Show dead code panel
+      const deadFiles = [];
+      function collectDeadCode(node) {
+        if (node.isDeadCode) deadFiles.push(node);
+        if (node.children) node.children.forEach(collectDeadCode);
+      }
+      collectDeadCode(DATA.root);
+      if (deadFiles.length > 0) {
+        document.getElementById('deadCodePanel').style.display = 'block';
+        const deadCodeContent = document.getElementById('deadCodeContent');
+        deadCodeContent.innerHTML = deadFiles.map(n => {
+          return '<div class="dead-code-item" data-path="' + escapeHtml(n.path) + '">' +
+            '<span style="flex:1;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;" title="' + escapeHtml(n.path) + '">' + escapeHtml(n.name) + '</span>' +
+            '<span style="font-size:10px;color:var(--text-muted);flex-shrink:0;">' + (n.size ? formatBytes(n.size, 0) : '') + '</span>' +
+            '</div>';
+        }).join('');
+        deadCodeContent.querySelectorAll('.dead-code-item').forEach(el => {
+          el.addEventListener('click', () => selectDeadCodeFile(el.dataset.path));
+        });
+      }
+
       // Expand root by default
       expandedNodes.add('');
       expandedNodes.add('__external__');
@@ -1239,6 +1392,7 @@ export function generateHTML(result: AnalysisResult): string {
       document.getElementById('filterLocal').addEventListener('click', () => setFilter('local'));
       document.getElementById('filterExternal').addEventListener('click', () => setFilter('external'));
       document.getElementById('filterOrphan').addEventListener('click', () => setFilter('orphan'));
+      document.getElementById('filterDead').addEventListener('click', () => setFilter('dead'));
       document.getElementById('expandAllBtn').addEventListener('click', expandAll);
       document.getElementById('collapseAllBtn').addEventListener('click', collapseAll);
 
@@ -1323,6 +1477,11 @@ export function generateHTML(result: AnalysisResult): string {
          if (!hasOrphanMatch(node)) return div;
       }
 
+      if (currentFilter === 'dead') {
+         if (node.path === '__external__' || node.type === 'external') return div;
+         if (!hasDeadCodeMatch(node)) return div;
+      }
+
       // If search active and nothing matches, hide
       if (searchQuery && !matchesSearch && !anyChildMatches) {
         div.style.display = 'none';
@@ -1383,6 +1542,13 @@ export function generateHTML(result: AnalysisResult): string {
         badge.className = 'tree-badge orphan';
         badge.textContent = 'Orphan';
         badge.title = 'Not imported by any file';
+        row.appendChild(badge);
+      }
+      if (node.isDeadCode) {
+        const badge = document.createElement('span');
+        badge.className = 'tree-badge dead-code';
+        badge.textContent = '  Dead';
+        badge.title = 'Dead code — not imported and has no exports';
         row.appendChild(badge);
       }
       if (node.size !== undefined) {
@@ -1466,6 +1632,15 @@ export function generateHTML(result: AnalysisResult): string {
       return false;
     }
 
+    function hasDeadCodeMatch(node) {
+      if (node.isDeadCode) return true;
+      if (!node.children) return false;
+      for (const child of node.children) {
+        if (hasDeadCodeMatch(child)) return true;
+      }
+      return false;
+    }
+
     // ─── Detail Panel ───
     function showDetail(node) {
       const title = document.getElementById('detailTitle');
@@ -1474,9 +1649,11 @@ export function generateHTML(result: AnalysisResult): string {
       title.textContent = node.name;
 
       let html = '';
-      
-      if (node.isOrphan) {
-         html += '<div style="margin-bottom: 12px;"><span class="tree-badge orphan" style="font-size:12px; padding: 4px 8px;">🗑 Orphan (Unused)</span></div>';
+
+      if (node.isDeadCode) {
+        html += '<div style="margin-bottom:12px;"><span class="tree-badge dead-code" style="font-size:12px;padding:4px 10px;">  Dead Code — not imported &amp; no exports</span></div>';
+      } else if (node.isOrphan) {
+        html += '<div style="margin-bottom: 12px;"><span class="tree-badge orphan" style="font-size:12px; padding: 4px 8px;">🗑 Orphan (Unused)</span></div>';
       }
       if (node.size !== undefined) {
          html += '<div style="margin-bottom: 12px; color: var(--text-muted); font-size: 13px;">File Size: <strong>' + formatBytes(node.size) + '</strong></div>';
@@ -1605,42 +1782,86 @@ export function generateHTML(result: AnalysisResult): string {
       }
     }
 
-    // ─── Graph Engine ───
-    let graph = { nodes: [], edges: [], clusters: {} };
+    // ─── Graph Engine (Flowchart / Hierarchical Layout) ───
+    let graph = { nodes: [], edges: [], clusters: {}, layers: [] };
     let canvas, ctx;
     let transform = { x: 0, y: 0, k: 1 };
     let isDragging = false;
     let dragStart = { x: 0, y: 0 };
-    let draggedNode = null;
     let hoveredNode = null;
-    let animationFrameId;
+
+    // Flowchart node dimensions
+    const NODE_W = 140;
+    const NODE_H = 34;
+    const NODE_R = 8;
+
+    // Settings
+    let graphSettings = {
+      direction: 'TB',
+      spacingMult: 1.5,
+      groupByFolder: true
+    };
+
+    // Colors per cluster
+    const CLUSTER_COLORS = [
+      { bg: 'rgba(59,130,246,0.07)', border: 'rgba(59,130,246,0.3)' },
+      { bg: 'rgba(168,85,247,0.07)', border: 'rgba(168,85,247,0.3)' },
+      { bg: 'rgba(34,197,94,0.07)', border: 'rgba(34,197,94,0.3)' },
+      { bg: 'rgba(249,115,22,0.07)', border: 'rgba(249,115,22,0.3)' },
+      { bg: 'rgba(236,72,153,0.07)', border: 'rgba(236,72,153,0.3)' },
+      { bg: 'rgba(20,184,166,0.07)', border: 'rgba(20,184,166,0.3)' },
+      { bg: 'rgba(245,158,11,0.07)', border: 'rgba(245,158,11,0.3)' },
+      { bg: 'rgba(99,102,241,0.07)', border: 'rgba(99,102,241,0.3)' },
+    ];
 
     function initGraph() {
       canvas = document.getElementById('graphCanvas');
       ctx = canvas.getContext('2d');
       
-      const resizeContent = () => {
+      const resizeCanvas = () => {
         const rect = canvas.parentElement.getBoundingClientRect();
         canvas.width = rect.width;
         canvas.height = rect.height;
         if (graph.nodes.length > 0) drawGraph();
       };
-      window.addEventListener('resize', resizeContent);
-      resizeContent();
+      window.addEventListener('resize', resizeCanvas);
+      resizeCanvas();
       
       canvas.addEventListener('mousedown', onGraphMouseDown);
       window.addEventListener('mousemove', onGraphMouseMove);
       window.addEventListener('mouseup', onGraphMouseUp);
       canvas.addEventListener('wheel', onGraphWheel, { passive: false });
       
-      document.getElementById('resetGraphBtn').addEventListener('click', fitGraph);
-      document.getElementById('zoomInBtn').addEventListener('click', () => { zoom(1.2); });
-      document.getElementById('zoomOutBtn').addEventListener('click', () => { zoom(0.8); });
+      document.getElementById('resetGraphBtn').addEventListener('click', () => { rebuildLayout(); fitGraph(); });
+      document.getElementById('zoomInBtn').addEventListener('click', () => { zoom(1.3); });
+      document.getElementById('zoomOutBtn').addEventListener('click', () => { zoom(0.7); });
       document.getElementById('fitBtn').addEventListener('click', fitGraph);
       
+      // Settings controls
+      document.getElementById('layoutDirectionSelect').addEventListener('change', (ev) => {
+        graphSettings.direction = ev.target.value;
+        rebuildLayout();
+        fitGraph();
+      });
+      document.getElementById('spacingSlider').addEventListener('input', (ev) => {
+        graphSettings.spacingMult = ev.target.value / 100;
+        rebuildLayout();
+        fitGraph();
+      });
+      document.getElementById('groupByFolderToggle').addEventListener('change', (ev) => {
+        graphSettings.groupByFolder = ev.target.checked;
+        rebuildLayout();
+        fitGraph();
+      });
+      
       buildGraphData();
+      computeLayout();
       fitGraph();
-      startSimulation();
+    }
+
+    function rebuildLayout() {
+      computeLayout();
+      drawGraph();
     }
 
     function buildGraphData() {
@@ -1659,15 +1880,6 @@ export function generateHTML(result: AnalysisResult): string {
         const id = n.path;
         const cluster = isEx ? '__external__' : (id.substring(0, id.lastIndexOf('/')) || '/');
         
-        const nodeColor = getComputedStyle(document.documentElement).getPropertyValue('--text-secondary').trim() || '#3f3f46';
-        const extColor = getComputedStyle(document.documentElement).getPropertyValue('--text-primary').trim() || '#000';
-        
-        let calculatedRadius = isEx ? 8 : 6;
-        if (!isEx && n.size !== undefined) {
-           // Scale radius smoothly between 4px and 24px based on size
-           calculatedRadius = Math.max(4, Math.min(24, 4 + Math.sqrt(n.size) / 15));
-        }
-        
         const nodeObj = {
           id,
           label: n.name,
@@ -1675,11 +1887,10 @@ export function generateHTML(result: AnalysisResult): string {
           isExternal: isEx,
           cluster,
           imports: n.imports || [],
-          x: (Math.random()-0.5)*canvas.width,
-          y: (Math.random()-0.5)*canvas.height,
-          vx: 0, vy: 0,
-          radius: calculatedRadius,
-          color: isEx ? extColor : nodeColor,
+          x: 0, y: 0,
+          w: NODE_W, h: NODE_H,
+          layer: 0, order: 0,
+          color: '',
           nodeRef: n
         };
         nodesMap.set(id, nodeObj);
@@ -1708,100 +1919,162 @@ export function generateHTML(result: AnalysisResult): string {
       }
     }
 
-    function startSimulation() {
-      if (animationFrameId) cancelAnimationFrame(animationFrameId);
-      
-      // Pre-calculate positions synchronously for a static graph
-      let alpha = 1;
-      const decay = 0.96;
-      
-      // Run N iterations to settle the graph
-      for (let i = 0; i < 150; i++) {
-        alpha *= decay;
-        computeForces(alpha);
-        updatePositions();
-      }
-      
-      // Final render
-      drawGraph();
-    }
+    // ── Hierarchical layout (Sugiyama-style) ──
+    function computeLayout() {
+      const isLR = graphSettings.direction === 'LR';
+      const spaceMult = graphSettings.spacingMult;
+      const LAYER_GAP = (isLR ? 220 : 100) * spaceMult;
+      const NODE_GAP = (isLR ? 46 : 50) * spaceMult;
 
-    function computeForces(alpha) {
-      const k = 0.1; 
-      const push = 3000; 
-      const centerForce = 0.02;
-      const clusterForce = 1.2;
-      
-      for(let i=0; i<graph.nodes.length; i++) {
-        for(let j=i+1; j<graph.nodes.length; j++) {
-          const n1 = graph.nodes[i];
-          const n2 = graph.nodes[j];
-          let dx = n2.x - n1.x;
-          let dy = n2.y - n1.y;
-          if(dx===0 && dy===0) { dx=(Math.random()-0.5); dy=(Math.random()-0.5); }
-          const distSq = dx*dx + dy*dy;
-          
-          if (n1.cluster === n2.cluster && distSq < 40000) {
-            const pull = clusterForce * alpha;
-            n1.vx += dx * pull * 0.01;
-            n1.vy += dy * pull * 0.01;
-            n2.vx -= dx * pull * 0.01;
-            n2.vy -= dy * pull * 0.01;
+      // 1) Assign layers via longest-path from roots
+      const inDegree = new Map();
+      const outAdj = new Map();
+      for (const n of graph.nodes) { inDegree.set(n, 0); outAdj.set(n, []); }
+      for (const e of graph.edges) {
+        inDegree.set(e.target, (inDegree.get(e.target) || 0) + 1);
+        outAdj.get(e.source).push(e.target);
+      }
+
+      const roots = graph.nodes.filter(n => inDegree.get(n) === 0);
+      const layerOf = new Map();
+      const visited = new Set();
+      const queue = [];
+      for (const r of roots) { layerOf.set(r, 0); queue.push(r); visited.add(r); }
+      for (const n of graph.nodes) {
+        if (!visited.has(n)) { layerOf.set(n, 0); queue.push(n); visited.add(n); }
+      }
+
+      let head = 0;
+      while (head < queue.length) {
+        const cur = queue[head++];
+        const curLayer = layerOf.get(cur);
+        for (const child of outAdj.get(cur)) {
+          const newLayer = curLayer + 1;
+          if (!layerOf.has(child) || layerOf.get(child) < newLayer) {
+            layerOf.set(child, newLayer);
           }
-          
-          const force = push / distSq * alpha;
-          const dist = Math.sqrt(distSq);
-          n1.vx -= (dx/dist) * force;
-          n1.vy -= (dy/dist) * force;
-          n2.vx += (dx/dist) * force;
-          n2.vy += (dy/dist) * force;
+          if (!visited.has(child)) {
+            visited.add(child);
+            queue.push(child);
+          }
         }
       }
-      
-      for(const e of graph.edges) {
-        const dx = e.target.x - e.source.x;
-        const dy = e.target.y - e.source.y;
-        const dist = Math.sqrt(dx*dx + dy*dy) || 1;
-        const targetDist = 80;
-        const force = (dist - targetDist) * k * alpha;
-        
-        e.source.vx += (dx/dist) * force;
-        e.source.vy += (dy/dist) * force;
-        e.target.vx -= (dx/dist) * force;
-        e.target.vy -= (dy/dist) * force;
-      }
-      
-      for(const n of graph.nodes) {
-        n.vx -= n.x * centerForce * alpha;
-        n.vy -= n.y * centerForce * alpha;
-      }
-    }
 
-    function updatePositions() {
-      const damp = 0.6;
-      for(const n of graph.nodes) {
-        if (n === draggedNode) continue;
-        n.vx *= damp;
-        n.vy *= damp;
-        n.x += n.vx;
-        n.y += n.vy;
+      let maxLayer = 0;
+      for (const n of graph.nodes) {
+        n.layer = layerOf.get(n) || 0;
+        if (n.layer > maxLayer) maxLayer = n.layer;
       }
+
+      // 2) Group into layers
+      const layers = [];
+      for (let i = 0; i <= maxLayer; i++) layers.push([]);
+      for (const n of graph.nodes) layers[n.layer].push(n);
+
+      for (const layer of layers) {
+        layer.sort((a, b) => {
+          if (graphSettings.groupByFolder) {
+            const ca = a.cluster.localeCompare(b.cluster);
+            if (ca !== 0) return ca;
+          }
+          return a.label.localeCompare(b.label);
+        });
+      }
+
+      // 3) Reduce crossings: barycenter heuristic
+      for (let pass = 0; pass < 4; pass++) {
+        for (let li = 1; li < layers.length; li++) {
+          for (const n of layers[li]) {
+            const parents = graph.edges
+              .filter(e => e.target === n && e.source.layer === li - 1)
+              .map(e => layers[li-1].indexOf(e.source))
+              .filter(idx => idx >= 0);
+            n._bary = parents.length > 0
+              ? parents.reduce((a,b) => a+b, 0) / parents.length
+              : layers[li].indexOf(n);
+          }
+          layers[li].sort((a, b) => a._bary - b._bary);
+        }
+        for (let li = layers.length - 2; li >= 0; li--) {
+          for (const n of layers[li]) {
+            const children = graph.edges
+              .filter(e => e.source === n && e.target.layer === li + 1)
+              .map(e => layers[li+1].indexOf(e.target))
+              .filter(idx => idx >= 0);
+            n._bary = children.length > 0
+              ? children.reduce((a,b) => a+b, 0) / children.length
+              : layers[li].indexOf(n);
+          }
+          layers[li].sort((a, b) => a._bary - b._bary);
+        }
+      }
+
+      // 4) Assign coordinates
+      for (let li = 0; li < layers.length; li++) {
+        const layer = layers[li];
+        const totalWidth = layer.length * (NODE_W + NODE_GAP) - NODE_GAP;
+        const startOffset = -totalWidth / 2;
+        for (let ni = 0; ni < layer.length; ni++) {
+          const n = layer[ni];
+          n.order = ni;
+          if (isLR) {
+            n.x = li * (NODE_W + LAYER_GAP);
+            n.y = startOffset + ni * (NODE_H + NODE_GAP);
+          } else {
+            n.x = startOffset + ni * (NODE_W + NODE_GAP);
+            n.y = li * (NODE_H + LAYER_GAP);
+          }
+        }
+      }
+
+      graph.layers = layers;
     }
 
     function isNodeVisible(n) {
       if (currentFilter === 'local' && n.isExternal) return false;
       if (currentFilter === 'external' && !n.isExternal) return false;
       if (currentFilter === 'orphan') {
-         // In graph view, show ONLY orphans and their clusters
-         // Since clusters are virtual, nodes must be strictly an orphan
-         if (n.type === 'directory') {
-            // we don't visualize directories directly as nodes anyway, but if we did
-            return false; 
-         }
          return n.nodeRef && n.nodeRef.isOrphan;
+      }
+      if (currentFilter === 'dead') {
+         return n.nodeRef && n.nodeRef.isDeadCode;
       }
       if (searchQuery && !n.label.toLowerCase().includes(searchQuery.toLowerCase())) return false;
       return true;
+    }
+
+    function isConnected(a, b) {
+      for (const e of graph.edges) {
+        if ((e.source === a && e.target === b) || (e.source === b && e.target === a)) return true;
+      }
+      return false;
+    }
+
+    function hitTest(px, py, n) {
+      return px >= n.x && px <= n.x + n.w && py >= n.y && py <= n.y + n.h;
+    }
+
+    function nodeAtPoint(px, py) {
+      for (let i = graph.nodes.length - 1; i >= 0; i--) {
+        const n = graph.nodes[i];
+        if (!isNodeVisible(n)) continue;
+        if (hitTest(px, py, n)) return n;
+      }
+      return null;
+    }
+
+    function drawRoundedRect(x, y, w, h, r) {
+      ctx.beginPath();
+      ctx.moveTo(x + r, y);
+      ctx.lineTo(x + w - r, y);
+      ctx.quadraticCurveTo(x + w, y, x + w, y + r);
+      ctx.lineTo(x + w, y + h - r);
+      ctx.quadraticCurveTo(x + w, y + h, x + w - r, y + h);
+      ctx.lineTo(x + r, y + h);
+      ctx.quadraticCurveTo(x, y + h, x, y + h - r);
+      ctx.lineTo(x, y + r);
+      ctx.quadraticCurveTo(x, y, x + r, y);
+      ctx.closePath();
     }
 
     function drawGraph() {
@@ -1809,95 +2082,171 @@ export function generateHTML(result: AnalysisResult): string {
       const lineColor = getComputedStyle(document.documentElement).getPropertyValue('--border-color').trim();
       const highlightColor = getComputedStyle(document.documentElement).getPropertyValue('--text-primary').trim();
       const textColor = getComputedStyle(document.documentElement).getPropertyValue('--text-primary').trim();
-      
-      for (const n of graph.nodes) {
-         n.color = n.isExternal 
-           ? (getComputedStyle(document.documentElement).getPropertyValue('--text-primary').trim() || '#000')
-           : (getComputedStyle(document.documentElement).getPropertyValue('--text-muted').trim() || '#71717a');
-      }
+      const mutedColor = getComputedStyle(document.documentElement).getPropertyValue('--text-muted').trim() || '#71717a';
+      const isLR = graphSettings.direction === 'LR';
 
       ctx.clearRect(0, 0, canvas.width, canvas.height);
       ctx.save();
       ctx.translate(canvas.width/2 + transform.x, canvas.height/2 + transform.y);
       ctx.scale(transform.k, transform.k);
-      
-      ctx.lineWidth = 1;
-      for(const e of graph.edges) {
-        const sourceVisible = isNodeVisible(e.source);
-        const targetVisible = isNodeVisible(e.target);
-        const edgeVisible = sourceVisible || targetVisible;
-        
-        if (!edgeVisible) continue; // Skip completely hidden edges
-        
-        let isHighlight = false;
-        if (hoveredNode && (e.source === hoveredNode || e.target === hoveredNode)) isHighlight = true;
-        
-        ctx.strokeStyle = isHighlight ? highlightColor : lineColor;
-        ctx.lineWidth = isHighlight ? 2 / transform.k : 1 / transform.k;
-        
-        if (hoveredNode && !isHighlight) {
-          ctx.strokeStyle = isDark ? 'rgba(255,255,255,0.05)' : 'rgba(0,0,0,0.05)';
-        } else if (!sourceVisible || !targetVisible) {
-          ctx.strokeStyle = isDark ? 'rgba(255,255,255,0.1)' : 'rgba(0,0,0,0.1)';
+
+      // ── Cluster group backgrounds ──
+      if (graphSettings.groupByFolder) {
+        const clusterKeys = Object.keys(graph.clusters).filter(k => k !== '__external__');
+        let ci = 0;
+        for (const key of clusterKeys) {
+          const members = graph.clusters[key].filter(n => isNodeVisible(n));
+          if (members.length === 0) { ci++; continue; }
+          let minX = Infinity, minY = Infinity, maxX = -Infinity, maxY = -Infinity;
+          for (const m of members) {
+            if (m.x < minX) minX = m.x;
+            if (m.y < minY) minY = m.y;
+            if (m.x + m.w > maxX) maxX = m.x + m.w;
+            if (m.y + m.h > maxY) maxY = m.y + m.h;
+          }
+          const pad = 18 / transform.k;
+          const col = CLUSTER_COLORS[ci % CLUSTER_COLORS.length];
+          ctx.save();
+          ctx.globalAlpha = hoveredNode ? 0.25 : 0.55;
+          drawRoundedRect(minX - pad, minY - pad - 16/transform.k, maxX - minX + pad*2, maxY - minY + pad*2 + 16/transform.k, 10/transform.k);
+          ctx.fillStyle = col.bg;
+          ctx.fill();
+          ctx.setLineDash([6/transform.k, 4/transform.k]);
+          ctx.strokeStyle = col.border;
+          ctx.lineWidth = 1.2 / transform.k;
+          ctx.stroke();
+          ctx.setLineDash([]);
+          // cluster label
+          if (transform.k > 0.25) {
+            ctx.globalAlpha = 0.65;
+            ctx.fillStyle = col.border;
+            ctx.font = 'bold ' + (10/transform.k) + 'px "Inter"';
+            ctx.textAlign = 'left';
+            ctx.textBaseline = 'bottom';
+            const lbl = key === '/' ? '(root)' : key.split('/').pop();
+            ctx.fillText(lbl, minX - pad + 6/transform.k, minY - pad);
+          }
+          ctx.restore();
+          ci++;
         }
-        
-        ctx.beginPath();
-        ctx.moveTo(e.source.x, e.source.y);
-        ctx.lineTo(e.target.x, e.target.y);
-        ctx.stroke();
-        
-        if (isHighlight) drawArrowHead(ctx, e.source.x, e.source.y, e.target.x, e.target.y, e.target.radius + 2);
       }
-      
-      for(const n of graph.nodes) {
+
+      // ── Draw edges (bezier connectors) ──
+      for (const e of graph.edges) {
+        const srcVis = isNodeVisible(e.source);
+        const tgtVis = isNodeVisible(e.target);
+        if (!srcVis && !tgtVis) continue;
+
+        let isHL = false;
+        if (hoveredNode && (e.source === hoveredNode || e.target === hoveredNode)) isHL = true;
+
+        if (hoveredNode && !isHL) {
+          ctx.globalAlpha = 0.04;
+          ctx.strokeStyle = isDark ? 'rgba(255,255,255,1)' : 'rgba(0,0,0,1)';
+        } else if (!srcVis || !tgtVis) {
+          ctx.globalAlpha = 0.12;
+          ctx.strokeStyle = lineColor;
+        } else if (isHL) {
+          ctx.globalAlpha = 1;
+          ctx.strokeStyle = highlightColor;
+        } else {
+          ctx.globalAlpha = 0.35;
+          ctx.strokeStyle = lineColor;
+        }
+
+        ctx.lineWidth = isHL ? 2 / transform.k : 0.8 / transform.k;
+
+        // connector points: center of right/bottom edge → center of left/top edge
+        let sx, sy, tx, ty;
+        if (isLR) {
+          sx = e.source.x + e.source.w; sy = e.source.y + e.source.h / 2;
+          tx = e.target.x;              ty = e.target.y + e.target.h / 2;
+        } else {
+          sx = e.source.x + e.source.w / 2; sy = e.source.y + e.source.h;
+          tx = e.target.x + e.target.w / 2; ty = e.target.y;
+        }
+
+        const midMain = isLR ? (sx + tx) / 2 : (sy + ty) / 2;
+        ctx.beginPath();
+        ctx.moveTo(sx, sy);
+        if (isLR) {
+          ctx.bezierCurveTo(midMain, sy, midMain, ty, tx, ty);
+        } else {
+          ctx.bezierCurveTo(sx, midMain, tx, midMain, tx, ty);
+        }
+        ctx.stroke();
+
+        // arrowhead
+        if (isHL || ctx.globalAlpha > 0.1) {
+          const aLen = 7 / transform.k;
+          const angle = Math.atan2(ty - sy, tx - sx);
+          ctx.beginPath();
+          ctx.moveTo(tx, ty);
+          ctx.lineTo(tx - aLen * Math.cos(angle - Math.PI/7), ty - aLen * Math.sin(angle - Math.PI/7));
+          ctx.lineTo(tx - aLen * Math.cos(angle + Math.PI/7), ty - aLen * Math.sin(angle + Math.PI/7));
+          ctx.closePath();
+          ctx.fillStyle = ctx.strokeStyle;
+          ctx.fill();
+        }
+      }
+
+      ctx.globalAlpha = 1;
+
+      // ── Draw nodes (rounded rectangles) ──
+      for (const n of graph.nodes) {
         const visible = isNodeVisible(n);
         let opacity = visible ? 1 : 0.05;
-        
-        if (visible && hoveredNode && hoveredNode !== n && !isConnected(n, hoveredNode)) opacity = 0.2;
-        
-        ctx.beginPath();
-        ctx.arc(n.x, n.y, n.radius, 0, Math.PI*2);
-        ctx.fillStyle = n.color;
+        if (visible && hoveredNode && hoveredNode !== n && !isConnected(n, hoveredNode)) opacity = 0.15;
+
+        const isDeadCode = !n.isExternal && n.nodeRef && n.nodeRef.isDeadCode;
+
+        ctx.save();
         ctx.globalAlpha = opacity;
+
+        // Node background
+        const fillCol = isDeadCode
+          ? (isDark ? 'rgba(100,30,30,0.9)' : 'rgba(220,80,80,0.7)')
+          : n.isExternal
+            ? (isDark ? '#27272a' : '#f4f4f5')
+            : (isDark ? '#18181b' : '#ffffff');
+
+        drawRoundedRect(n.x, n.y, n.w, n.h, NODE_R);
+        ctx.fillStyle = fillCol;
         ctx.fill();
-        ctx.strokeStyle = '#181825';
-        ctx.lineWidth = 2 / transform.k;
-        ctx.stroke();
-        
-        if ((n === hoveredNode || transform.k > 1.2) && visible) {
-          ctx.globalAlpha = visible ? 1 : 0.2;
-          ctx.fillStyle = textColor;
-          ctx.font = (10/transform.k) + 'px "JetBrains Mono"';
-          ctx.textAlign = 'center';
-          ctx.textBaseline = 'top';
-          ctx.fillText(n.label, n.x, n.y + n.radius + 4/transform.k);
+
+        // Dead code dashed border
+        if (isDeadCode && visible) {
+          ctx.setLineDash([4/transform.k, 3/transform.k]);
+          ctx.strokeStyle = isDark ? 'rgba(248,113,113,0.9)' : 'rgba(185,28,28,0.8)';
+          ctx.lineWidth = 2 / transform.k;
+          ctx.stroke();
+          ctx.setLineDash([]);
+        } else {
+          ctx.strokeStyle = (hoveredNode === n)
+            ? highlightColor
+            : (isDark ? '#3f3f46' : '#d4d4d8');
+          ctx.lineWidth = (hoveredNode === n ? 2 : 1) / transform.k;
+          ctx.stroke();
         }
+
+        // Label inside node
+        if (transform.k > 0.15) {
+          const fontSize = Math.max(6, Math.min(11, 11 / transform.k));
+          ctx.fillStyle = isDeadCode ? (isDark ? '#f87171' : '#b91c1c')
+            : n.isExternal ? mutedColor : textColor;
+          ctx.font = fontSize + 'px "JetBrains Mono"';
+          ctx.textAlign = 'center';
+          ctx.textBaseline = 'middle';
+          const maxChars = Math.floor(n.w / (fontSize * 0.62));
+          let lbl = n.label;
+          if (lbl.length > maxChars) lbl = lbl.slice(0, maxChars - 1) + '\u2026';
+          ctx.fillText(lbl, n.x + n.w / 2, n.y + n.h / 2);
+        }
+
+        ctx.restore();
       }
-      
+
       ctx.restore();
-    }
-
-    function drawArrowHead(ctx, x1, y1, x2, y2, radius) {
-      const dx = x2 - x1;
-      const dy = y2 - y1;
-      const angle = Math.atan2(dy, dx);
-      const len = 8 / transform.k;
-      const tx = x2 - Math.cos(angle) * radius;
-      const ty = y2 - Math.sin(angle) * radius;
-      
-      ctx.beginPath();
-      ctx.moveTo(tx, ty);
-      ctx.lineTo(tx - len * Math.cos(angle - Math.PI/6), ty - len * Math.sin(angle - Math.PI/6));
-      ctx.lineTo(tx - len * Math.cos(angle + Math.PI/6), ty - len * Math.sin(angle + Math.PI/6));
-      ctx.fillStyle = ctx.strokeStyle;
-      ctx.fill();
-    }
-
-    function isConnected(a, b) {
-      for(const e of graph.edges) {
-        if ((e.source === a && e.target === b) || (e.source === b && e.target === a)) return true;
-      }
-      return false;
     }
 
     function getPointerPos(e) {
@@ -1911,16 +2260,11 @@ export function generateHTML(result: AnalysisResult): string {
     function onGraphMouseDown(e) {
       if (currentView !== 'graph') return;
       const p = getPointerPos(e);
-      let found = null;
-      for(let i=graph.nodes.length-1; i>=0; i--) {
-         const n = graph.nodes[i];
-         if (!isNodeVisible(n)) continue;
-         const dx=p.x-n.x, dy=p.y-n.y;
-         if(dx*dx+dy*dy < (n.radius+5/transform.k)*(n.radius+5/transform.k)) { found=n; break; }
-      }
-      
+      const found = nodeAtPoint(p.x, p.y);
+
       if (found) {
-        draggedNode = found;
+        selectedNode = found.id;
+        showDetail(found.nodeRef);
       } else {
         isDragging = true;
         dragStart = { x: e.clientX, y: e.clientY };
@@ -1930,44 +2274,26 @@ export function generateHTML(result: AnalysisResult): string {
     function onGraphMouseMove(e) {
       if (currentView !== 'graph') return;
       const p = getPointerPos(e);
-      
-      if (draggedNode) {
-        draggedNode.x = p.x;
-        draggedNode.y = p.y;
-        drawGraph();
-      } else if (isDragging) {
+
+      if (isDragging) {
         transform.x += (e.clientX - dragStart.x);
         transform.y += (e.clientY - dragStart.y);
         dragStart = { x: e.clientX, y: e.clientY };
         drawGraph();
       } else {
-         let found = null;
-         for(let i=graph.nodes.length-1; i>=0; i--) {
-           const n = graph.nodes[i];
-           if (!isNodeVisible(n)) continue;
-           const dx=p.x-n.x, dy=p.y-n.y;
-           if(dx*dx+dy*dy < (n.radius+5/transform.k)*(n.radius+5/transform.k)) { found=n; break; }
-         }
-         
-         if (found !== hoveredNode) {
-           hoveredNode = found;
-           updateTooltip(e, found);
-           drawGraph();
-           canvas.style.cursor = found ? 'pointer' : 'grab';
-         } else if (found) {
-           updateTooltip(e, found);
-         }
+        const found = nodeAtPoint(p.x, p.y);
+        if (found !== hoveredNode) {
+          hoveredNode = found;
+          updateTooltip(e, found);
+          drawGraph();
+          canvas.style.cursor = found ? 'pointer' : 'grab';
+        } else if (found) {
+          updateTooltip(e, found);
+        }
       }
     }
 
     function onGraphMouseUp(e) {
-      if (draggedNode) {
-         if (draggedNode === hoveredNode) {
-            selectedNode = draggedNode.id;
-            showDetail(draggedNode.nodeRef);
-         }
-         draggedNode = null;
-      }
       isDragging = false;
     }
 
@@ -1989,7 +2315,7 @@ export function generateHTML(result: AnalysisResult): string {
       const px = cx - rect.left - canvas.width/2 - transform.x;
       const py = cy - rect.top - canvas.height/2 - transform.y;
       
-      const newK = Math.max(0.1, Math.min(transform.k * factor, 5));
+      const newK = Math.max(0.05, Math.min(transform.k * factor, 8));
       const scaleChange = newK - transform.k;
       
       transform.x -= px * (scaleChange / transform.k);
@@ -2002,27 +2328,30 @@ export function generateHTML(result: AnalysisResult): string {
     function fitGraph() {
       if (graph.nodes.length === 0) return;
       let minX = Infinity, maxX = -Infinity, minY = Infinity, maxY = -Infinity;
-      for(const n of graph.nodes) {
-        if (n.x < minX) minX = n.x;
-        if (n.x > maxX) maxX = n.x;
-        if (n.y < minY) minY = n.y;
-        if (n.y > maxY) maxY = n.y;
-      }
-      
+      const useAll = (arr) => {
+        for (const n of arr) {
+          if (n.x < minX) minX = n.x;
+          if (n.x + n.w > maxX) maxX = n.x + n.w;
+          if (n.y < minY) minY = n.y;
+          if (n.y + n.h > maxY) maxY = n.y + n.h;
+        }
+      };
+      const vis = graph.nodes.filter(n => isNodeVisible(n));
+      useAll(vis.length > 0 ? vis : graph.nodes);
+
       const width = Math.max(maxX - minX, 100);
       const height = Math.max(maxY - minY, 100);
-      
-      // Calculate center of graph bounding box
-      const cx = (minX + maxX)/2;
-      const cy = (minY + maxY)/2;
-      
+      const cx = (minX + maxX) / 2;
+      const cy = (minY + maxY) / 2;
+
       transform.x = -cx;
       transform.y = -cy;
-      
-      const scaleX = canvas.width / (width + 100);
-      const scaleY = canvas.height / (height + 100);
-      transform.k = Math.max(0.2, Math.min(scaleX, scaleY, 1.5));
-      
+
+      const pad = 120;
+      const scaleX = canvas.width / (width + pad);
+      const scaleY = canvas.height / (height + pad);
+      transform.k = Math.max(0.05, Math.min(scaleX, scaleY, 2));
+
       drawGraph();
     }
 
@@ -2032,14 +2361,45 @@ export function generateHTML(result: AnalysisResult): string {
         tooltip.style.display = 'none';
         return;
       }
-      
-      tooltip.innerHTML = '<strong>' + escapeHtml(node.label) + '</strong><br>' +
-      '<span style="color:var(--text-muted)">' + (node.isExternal ? 'External Package' : 'Local File') + '</span><br>' +
-      'Imports: ' + node.imports.length;
-      
+
+      const isDeadCode = !node.isExternal && node.nodeRef && node.nodeRef.isDeadCode;
+      const importedByCount = node.nodeRef && node.nodeRef.importedBy ? node.nodeRef.importedBy.length : 0;
+
+      tooltip.innerHTML = '<strong>' + (isDeadCode ? '  ' : '') + escapeHtml(node.label) + '</strong><br>' +
+        '<span style="color:var(--text-muted)">' + (node.isExternal ? 'External Package' : 'Local File') + '</span><br>' +
+        'Imports: ' + node.imports.length +
+        (importedByCount > 0 ? '<br>Imported by: ' + importedByCount + ' files' : '') +
+        (isDeadCode ? '<br><span style="color:#ef4444;font-weight:600;">  Dead Code</span>' : '');
+
       tooltip.style.display = 'block';
       tooltip.style.left = (e.clientX - canvas.getBoundingClientRect().left + 15) + 'px';
       tooltip.style.top = (e.clientY - canvas.getBoundingClientRect().top + 15) + 'px';
+    }
+
+    function selectDeadCodeFile(filePath) {
+      const parts = filePath.split('/');
+      for (let i = 1; i < parts.length; i++) {
+        expandedNodes.add(parts.slice(0, i).join('/'));
+      }
+      expandedNodes.add('');
+      function findNode(node, p) {
+        if (node.path === p) return node;
+        if (node.children) {
+          for (const c of node.children) { const r = findNode(c, p); if (r) return r; }
+        }
+        return null;
+      }
+      const found = findNode(DATA.root, filePath);
+      if (found) {
+        selectedNode = found.path;
+        showDetail(found);
+        if (currentView !== 'tree') setView('tree');
+        renderTree();
+        setTimeout(() => {
+          const rows = document.querySelectorAll('.tree-node-row.selected');
+          if (rows.length) rows[0].scrollIntoView({ behavior: 'smooth', block: 'center' });
+        }, 150);
+      }
     }
 
     // ─── Start ───

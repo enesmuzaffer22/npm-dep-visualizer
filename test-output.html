@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Dependency Visualizer — TEST-PROJECT</title>
+  <title>Dependency Visualizer — TEST-PROJECT-2</title>
   <style>
     @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap');
 
@@ -693,6 +693,50 @@
       font-weight: 500;
     }
 
+    .tree-badge.dead-code {
+      background: rgba(180, 0, 0, 0.07);
+      color: #b91c1c;
+      border: 1px solid rgba(180, 0, 0, 0.3);
+      font-weight: 600;
+    }
+    [data-theme='dark'] .tree-badge.dead-code {
+      background: rgba(255, 80, 80, 0.1);
+      color: #f87171;
+      border-color: rgba(255, 80, 80, 0.35);
+    }
+
+    .dead-code-panel {
+      background: var(--bg-secondary);
+      border: 1px solid var(--border-color);
+      border-radius: var(--radius-md);
+      overflow: hidden;
+    }
+
+    .dead-code-panel-header {
+      padding: 14px 20px;
+      border-bottom: 1px solid var(--border-color);
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      font-weight: 600;
+      font-size: 14px;
+    }
+
+    .dead-code-item {
+      padding: 10px 20px;
+      font-size: 12px;
+      font-family: 'JetBrains Mono', monospace;
+      color: var(--text-secondary);
+      border-bottom: 1px solid var(--border-color);
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      cursor: pointer;
+      transition: background 0.15s ease;
+    }
+    .dead-code-item:hover { background: var(--bg-hover); }
+    .dead-code-item:last-child { border-bottom: none; }
+
     .tree-children {
       overflow: hidden;
     }
@@ -846,6 +890,60 @@
       border-color: var(--border-accent);
     }
 
+    .graph-settings {
+      position: absolute;
+      top: 16px;
+      left: 16px;
+      background: var(--bg-tertiary);
+      border: 1px solid var(--border-color);
+      border-radius: var(--radius-sm);
+      padding: 12px 16px;
+      font-size: 11px;
+      display: flex;
+      flex-direction: column;
+      gap: 10px;
+      min-width: 180px;
+      z-index: 5;
+    }
+
+    .graph-settings-title {
+      font-weight: 600;
+      font-size: 12px;
+      color: var(--text-primary);
+      margin-bottom: 2px;
+    }
+
+    .graph-setting-row {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 8px;
+      color: var(--text-secondary);
+    }
+
+    .graph-setting-row label {
+      white-space: nowrap;
+    }
+
+    .graph-setting-row input[type=range] {
+      width: 70px;
+      accent-color: var(--text-primary);
+    }
+
+    .graph-setting-row input[type=checkbox] {
+      accent-color: var(--text-primary);
+    }
+
+    .graph-setting-row select {
+      background: var(--bg-surface);
+      color: var(--text-primary);
+      border: 1px solid var(--border-color);
+      border-radius: 4px;
+      padding: 2px 4px;
+      font-size: 11px;
+      cursor: pointer;
+    }
+
     .graph-tooltip {
       position: absolute;
       background: var(--bg-surface);
@@ -926,6 +1024,9 @@
            <button class="filter-btn" data-filter="orphan" id="filterOrphan">
              Orphan <span class="count" id="countOrphan"></span>
           </button>
+          <button class="filter-btn" data-filter="dead" id="filterDead">
+               Dead <span class="count" id="countDead"></span>
+          </button>
         </div>
         
         <button class="theme-toggle-btn" id="themeToggleBtn" title="Toggle Theme">
@@ -976,10 +1077,28 @@
             <button class="graph-control-btn" id="zoomOutBtn" title="Zoom Out">−</button>
             <button class="graph-control-btn" id="fitBtn" title="Fit to Screen">⊡</button>
           </div>
+          <div class="graph-settings">
+            <div class="graph-settings-title">Settings</div>
+            <div class="graph-setting-row">
+              <label>Direction</label>
+              <select id="layoutDirectionSelect">
+                <option value="TB" selected>Top → Bottom</option>
+                <option value="LR">Left → Right</option>
+              </select>
+            </div>
+            <div class="graph-setting-row">
+              <label>Spacing</label>
+              <input type="range" id="spacingSlider" min="50" max="200" value="150">
+            </div>
+            <div class="graph-setting-row">
+              <label>Group by Folder</label>
+              <input type="checkbox" id="groupByFolderToggle" checked>
+            </div>
+          </div>
           <div class="graph-legend">
             <div class="graph-legend-item"><div class="graph-legend-dot" style="background: var(--accent-blue);"></div> Local File</div>
             <div class="graph-legend-item"><div class="graph-legend-dot" style="background: var(--accent-orange);"></div> External Package</div>
-            <div class="graph-legend-item"><div class="graph-legend-dot" style="border: 2px dashed var(--accent-purple); background: transparent;"></div> Directory Cluster</div>
+            <div class="graph-legend-item"><div class="graph-legend-dot" style="border: 2px dashed rgba(180,0,0,0.7); background: rgba(180,0,0,0.08);"></div> Dead Code</div>
           </div>
         </div>
       </div>
@@ -1036,12 +1155,21 @@
         </div>
         <div id="circularContent"></div>
       </div>
+
+      <!-- Dead Code Panel -->
+      <div class="dead-code-panel" id="deadCodePanel" style="display: none;">
+        <div class="dead-code-panel-header">
+            <span>Dead Code Files</span>
+          <span style="margin-left:auto;font-size:11px;color:var(--text-muted);font-weight:400;">Not imported · No exports</span>
+        </div>
+        <div id="deadCodeContent"></div>
+      </div>
     </div>
   </div>
 
   <script>
     // ─── Data ───
-    const DATA = {"root":{"name":"TEST-PROJECT","path":"","type":"directory","children":[{"name":"app","path":"app","type":"directory","children":[{"name":"(main)","path":"app/(main)","type":"directory","children":[{"name":"layout.tsx","path":"app/(main)/layout.tsx","type":"file","children":[],"imports":[{"source":"react","resolved":null,"isExternal":true,"type":"import"},{"source":"../globals.css","resolved":"app/globals.css","isExternal":false,"type":"import"}],"importedBy":[],"importCount":2,"size":413,"isOrphan":true},{"name":"page.tsx","path":"app/(main)/page.tsx","type":"file","children":[],"imports":[{"source":"@/stores/counter.store","resolved":null,"isExternal":true,"type":"import"},{"source":"@/stores/post.store","resolved":null,"isExternal":true,"type":"import"},{"source":"react","resolved":null,"isExternal":true,"type":"import"}],"importedBy":[],"importCount":3,"size":749,"isOrphan":true}]},{"name":"users","path":"app/users","type":"directory","children":[{"name":"layout.tsx","path":"app/users/layout.tsx","type":"file","children":[],"imports":[{"source":"react","resolved":null,"isExternal":true,"type":"import"},{"source":"../globals.css","resolved":"app/globals.css","isExternal":false,"type":"import"}],"importedBy":[],"importCount":2,"size":422,"isOrphan":true},{"name":"page.tsx","path":"app/users/page.tsx","type":"file","children":[],"imports":[{"source":"@/stores/user.store","resolved":null,"isExternal":true,"type":"import"},{"source":"react","resolved":null,"isExternal":true,"type":"import"}],"importedBy":[],"importCount":2,"size":729,"isOrphan":true}]}]},{"name":"core","path":"core","type":"directory","children":[{"name":"post","path":"core/post","type":"directory","children":[{"name":"post.dto.ts","path":"core/post/post.dto.ts","type":"file","children":[],"imports":[],"importedBy":[],"importCount":0,"size":100,"isOrphan":true}]},{"name":"users","path":"core/users","type":"directory","children":[{"name":"user.dto.ts","path":"core/users/user.dto.ts","type":"file","children":[],"imports":[],"importedBy":[],"importCount":0,"size":470,"isOrphan":true}]}]},{"name":"services","path":"services","type":"directory","children":[{"name":"post.service.ts","path":"services/post.service.ts","type":"file","children":[],"imports":[{"source":"@/core/post/post.dto","resolved":null,"isExternal":true,"type":"import"}],"importedBy":[],"importCount":1,"size":298,"isOrphan":true},{"name":"user.service.ts","path":"services/user.service.ts","type":"file","children":[],"imports":[{"source":"@/core/users/user.dto","resolved":null,"isExternal":true,"type":"import"}],"importedBy":[],"importCount":1,"size":280,"isOrphan":true}]},{"name":"stores","path":"stores","type":"directory","children":[{"name":"post.store.ts","path":"stores/post.store.ts","type":"file","children":[],"imports":[{"source":"zustand","resolved":null,"isExternal":true,"type":"import"},{"source":"@/core/post/post.dto","resolved":null,"isExternal":true,"type":"import"},{"source":"@/services/post.service","resolved":null,"isExternal":true,"type":"import"}],"importedBy":[],"importCount":3,"size":488,"isOrphan":true},{"name":"user.store.ts","path":"stores/user.store.ts","type":"file","children":[],"imports":[{"source":"zustand","resolved":null,"isExternal":true,"type":"import"},{"source":"@/core/users/user.dto","resolved":null,"isExternal":true,"type":"import"},{"source":"@/services/user.service","resolved":null,"isExternal":true,"type":"import"}],"importedBy":[],"importCount":3,"size":487,"isOrphan":true}]}]},"externalNode":{"name":"External Packages","path":"__external__","type":"directory","children":[{"name":"@/core","path":"__external__/@/core","type":"external","children":[],"importedBy":["stores/user.store.ts","stores/post.store.ts","services/user.service.ts","services/post.service.ts"],"importCount":4},{"name":"react","path":"__external__/react","type":"external","children":[],"importedBy":["app/users/page.tsx","app/users/layout.tsx","app/(main)/page.tsx","app/(main)/layout.tsx"],"importCount":4},{"name":"@/stores","path":"__external__/@/stores","type":"external","children":[],"importedBy":["app/users/page.tsx","app/(main)/page.tsx"],"importCount":3},{"name":"zustand","path":"__external__/zustand","type":"external","children":[],"importedBy":["stores/user.store.ts","stores/post.store.ts"],"importCount":2},{"name":"@/services","path":"__external__/@/services","type":"external","children":[],"importedBy":["stores/user.store.ts","stores/post.store.ts"],"importCount":2}]},"stats":{"totalFiles":10,"totalImports":17,"totalExternalPackages":5,"totalLocalImports":2,"totalExternalImports":15,"totalSize":4436,"orphanCount":10,"circularDependencies":[],"hotspots":[]}};
+    const DATA = {"root":{"name":"TEST-PROJECT-2","path":"","type":"directory","children":[{"name":"aspnetcore-https.js","path":"aspnetcore-https.js","type":"file","children":[],"imports":[{"source":"fs","resolved":null,"isExternal":true,"type":"require"},{"source":"child_process","resolved":null,"isExternal":true,"type":"require"},{"source":"path","resolved":null,"isExternal":true,"type":"require"}],"importedBy":[],"importCount":3,"size":1201,"isOrphan":true,"isDeadCode":true},{"name":"karma.conf.js","path":"karma.conf.js","type":"file","children":[],"imports":[{"source":"karma-jasmine","resolved":null,"isExternal":true,"type":"require"},{"source":"karma-chrome-launcher","resolved":null,"isExternal":true,"type":"require"},{"source":"karma-jasmine-html-reporter","resolved":null,"isExternal":true,"type":"require"},{"source":"karma-coverage","resolved":null,"isExternal":true,"type":"require"},{"source":"@angular-devkit/build-angular/plugins/karma","resolved":null,"isExternal":true,"type":"require"},{"source":"path","resolved":null,"isExternal":true,"type":"require"}],"importedBy":[],"importCount":6,"size":1467,"isOrphan":true,"isDeadCode":false},{"name":"src","path":"src","type":"directory","children":[{"name":"app","path":"src/app","type":"directory","children":[{"name":"app-routing.module.ts","path":"src/app/app-routing.module.ts","type":"file","children":[],"imports":[{"source":"@angular/core","resolved":null,"isExternal":true,"type":"import"},{"source":"@angular/router","resolved":null,"isExternal":true,"type":"import"},{"source":"./guards/language.guard","resolved":"src/app/guards/language.guard.ts","isExternal":false,"type":"import"},{"source":"./landing/landing.component","resolved":"src/app/landing/landing.component.ts","isExternal":false,"type":"import"},{"source":"./forms/forms.module","resolved":"src/app/forms/forms.module.ts","isExternal":false,"type":"dynamic-import"}],"importedBy":["src/app/app.module.ts"],"importCount":5,"size":772,"isOrphan":false,"isDeadCode":false},{"name":"app.component.ts","path":"src/app/app.component.ts","type":"file","children":[],"imports":[{"source":"@angular/core","resolved":null,"isExternal":true,"type":"import"}],"importedBy":["src/app/app.module.ts"],"importCount":1,"size":218,"isOrphan":false,"isDeadCode":false},{"name":"app.module.ts","path":"src/app/app.module.ts","type":"file","children":[],"imports":[{"source":"@angular/common/http","resolved":null,"isExternal":true,"type":"import"},{"source":"@angular/core","resolved":null,"isExternal":true,"type":"import"},{"source":"@angular/platform-browser","resolved":null,"isExternal":true,"type":"import"},{"source":"./app-routing.module","resolved":"src/app/app-routing.module.ts","isExternal":false,"type":"import"},{"source":"./app.component","resolved":"src/app/app.component.ts","isExternal":false,"type":"import"},{"source":"@angular/platform-browser/animations","resolved":null,"isExternal":true,"type":"import"},{"source":"ngx-toastr","resolved":null,"isExternal":true,"type":"import"},{"source":"@angular/platform-browser/animations/async","resolved":null,"isExternal":true,"type":"import"},{"source":"@ngx-translate/core","resolved":null,"isExternal":true,"type":"import"},{"source":"@ngx-translate/http-loader","resolved":null,"isExternal":true,"type":"import"},{"source":"./landing/landing.component","resolved":"src/app/landing/landing.component.ts","isExternal":false,"type":"import"},{"source":"./forms/forms.module","resolved":"src/app/forms/forms.module.ts","isExternal":false,"type":"import"}],"importedBy":["src/main.ts"],"importCount":12,"size":1430,"isOrphan":false,"isDeadCode":false},{"name":"environments","path":"src/app/environments","type":"directory","children":[{"name":"environment.prod.ts","path":"src/app/environments/environment.prod.ts","type":"file","children":[],"imports":[],"importedBy":[],"importCount":0,"size":233,"isOrphan":true,"isDeadCode":false},{"name":"environment.ts","path":"src/app/environments/environment.ts","type":"file","children":[],"imports":[],"importedBy":["src/app/service/gas-spring.service.ts","src/app/service/email.service.ts"],"importCount":0,"size":381,"isOrphan":false,"isDeadCode":false}]},{"name":"forms","path":"src/app/forms","type":"directory","children":[{"name":"customer-feedback","path":"src/app/forms/customer-feedback","type":"directory","children":[{"name":"customer-feedback.component.ts","path":"src/app/forms/customer-feedback/customer-feedback.component.ts","type":"file","children":[],"imports":[{"source":"@angular/core","resolved":null,"isExternal":true,"type":"import"},{"source":"@angular/forms","resolved":null,"isExternal":true,"type":"import"},{"source":"@angular/common","resolved":null,"isExternal":true,"type":"import"},{"source":"../../service/email.service","resolved":"src/app/service/email.service.ts","isExternal":false,"type":"import"},{"source":"../../service/gas-spring.service","resolved":"src/app/service/gas-spring.service.ts","isExternal":false,"type":"import"},{"source":"../../models/mail-request","resolved":"src/app/models/mail-request.ts","isExternal":false,"type":"import"},{"source":"ngx-toastr","resolved":null,"isExternal":true,"type":"import"},{"source":"@ngx-translate/core","resolved":null,"isExternal":true,"type":"import"},{"source":"html2canvas","resolved":null,"isExternal":true,"type":"import"}],"importedBy":["src/app/forms/forms.module.ts"],"importCount":9,"size":35233,"isOrphan":false,"isDeadCode":false}]},{"name":"customer-satisfaction-form","path":"src/app/forms/customer-satisfaction-form","type":"directory","children":[{"name":"customer-satisfaction-form.component.ts","path":"src/app/forms/customer-satisfaction-form/customer-satisfaction-form.component.ts","type":"file","children":[],"imports":[{"source":"@angular/core","resolved":null,"isExternal":true,"type":"import"},{"source":"@angular/forms","resolved":null,"isExternal":true,"type":"import"},{"source":"@angular/common","resolved":null,"isExternal":true,"type":"import"},{"source":"../../service/gas-spring.service","resolved":"src/app/service/gas-spring.service.ts","isExternal":false,"type":"import"},{"source":"../../models/mail-request","resolved":"src/app/models/mail-request.ts","isExternal":false,"type":"import"},{"source":"ngx-toastr","resolved":null,"isExternal":true,"type":"import"},{"source":"@ngx-translate/core","resolved":null,"isExternal":true,"type":"import"}],"importedBy":["src/app/forms/forms.module.ts"],"importCount":7,"size":7910,"isOrphan":false,"isDeadCode":false}]},{"name":"customer-satisfaction","path":"src/app/forms/customer-satisfaction","type":"directory","children":[{"name":"customer-satisfaction.component.ts","path":"src/app/forms/customer-satisfaction/customer-satisfaction.component.ts","type":"file","children":[],"imports":[{"source":"@angular/core","resolved":null,"isExternal":true,"type":"import"},{"source":"@angular/forms","resolved":null,"isExternal":true,"type":"import"},{"source":"@angular/common","resolved":null,"isExternal":true,"type":"import"},{"source":"../../service/gas-spring.service","resolved":"src/app/service/gas-spring.service.ts","isExternal":false,"type":"import"},{"source":"../../models/mail-request","resolved":"src/app/models/mail-request.ts","isExternal":false,"type":"import"},{"source":"ngx-toastr","resolved":null,"isExternal":true,"type":"import"},{"source":"@ngx-translate/core","resolved":null,"isExternal":true,"type":"import"}],"importedBy":["src/app/forms/forms.module.ts"],"importCount":7,"size":6852,"isOrphan":false,"isDeadCode":false}]},{"name":"forms.component.ts","path":"src/app/forms/forms.component.ts","type":"file","children":[],"imports":[{"source":"@angular/core","resolved":null,"isExternal":true,"type":"import"},{"source":"../service/language.service","resolved":"src/app/service/language.service.ts","isExternal":false,"type":"import"}],"importedBy":["src/app/forms/forms.module.ts"],"importCount":2,"size":456,"isOrphan":false,"isDeadCode":false},{"name":"forms.module.ts","path":"src/app/forms/forms.module.ts","type":"file","children":[],"imports":[{"source":"@angular/core","resolved":null,"isExternal":true,"type":"import"},{"source":"@angular/common","resolved":null,"isExternal":true,"type":"import"},{"source":"@angular/router","resolved":null,"isExternal":true,"type":"import"},{"source":"@angular/material/toolbar","resolved":null,"isExternal":true,"type":"import"},{"source":"@angular/material/menu","resolved":null,"isExternal":true,"type":"import"},{"source":"@angular/material/button","resolved":null,"isExternal":true,"type":"import"},{"source":"@angular/material/input","resolved":null,"isExternal":true,"type":"import"},{"source":"@angular/material/form-field","resolved":null,"isExternal":true,"type":"import"},{"source":"@angular/material/select","resolved":null,"isExternal":true,"type":"import"},{"source":"@angular/material/checkbox","resolved":null,"isExternal":true,"type":"import"},{"source":"@angular/material/icon","resolved":null,"isExternal":true,"type":"import"},{"source":"@angular/material/progress-bar","resolved":null,"isExternal":true,"type":"import"},{"source":"@angular/material/radio","resolved":null,"isExternal":true,"type":"import"},{"source":"@angular/material/tooltip","resolved":null,"isExternal":true,"type":"import"},{"source":"@angular/forms","resolved":null,"isExternal":true,"type":"import"},{"source":"ng-lazyload-image","resolved":null,"isExternal":true,"type":"import"},{"source":"@fortawesome/angular-fontawesome","resolved":null,"isExternal":true,"type":"import"},{"source":"./forms.component","resolved":"src/app/forms/forms.component.ts","isExternal":false,"type":"import"},{"source":"./customer-feedback/customer-feedback.component","resolved":"src/app/forms/customer-feedback/customer-feedback.component.ts","isExternal":false,"type":"import"},{"source":"./offer-request-ggs/offer-request-ggs.component","resolved":"src/app/forms/offer-request-ggs/offer-request-ggs.component.ts","isExternal":false,"type":"import"},{"source":"./offer-request-block-lift/offer-request-block-lift.component","resolved":"src/app/forms/offer-request-block-lift/offer-request-block-lift.component.ts","isExternal":false,"type":"import"},{"source":"./offer-request-traction/offer-request-traction.component","resolved":"src/app/forms/offer-request-traction/offer-request-traction.component.ts","isExternal":false,"type":"import"},{"source":"./customer-satisfaction/customer-satisfaction.component","resolved":"src/app/forms/customer-satisfaction/customer-satisfaction.component.ts","isExternal":false,"type":"import"},{"source":"./customer-satisfaction-form/customer-satisfaction-form.component","resolved":"src/app/forms/customer-satisfaction-form/customer-satisfaction-form.component.ts","isExternal":false,"type":"import"},{"source":"./kvkk/kvkk.component","resolved":"src/app/forms/kvkk/kvkk.component.ts","isExternal":false,"type":"import"},{"source":"./header/header.component","resolved":"src/app/forms/header/header.component.ts","isExternal":false,"type":"import"},{"source":"@ngx-translate/core","resolved":null,"isExternal":true,"type":"import"}],"importedBy":["src/app/app.module.ts","src/app/app-routing.module.ts"],"importCount":27,"size":3735,"isOrphan":false,"isDeadCode":false},{"name":"header","path":"src/app/forms/header","type":"directory","children":[{"name":"header.component.ts","path":"src/app/forms/header/header.component.ts","type":"file","children":[],"imports":[{"source":"@angular/core","resolved":null,"isExternal":true,"type":"import"},{"source":"@angular/router","resolved":null,"isExternal":true,"type":"import"},{"source":"@fortawesome/angular-fontawesome","resolved":null,"isExternal":true,"type":"import"},{"source":"@fortawesome/free-solid-svg-icons","resolved":null,"isExternal":true,"type":"import"},{"source":"@ngx-translate/core","resolved":null,"isExternal":true,"type":"import"},{"source":"../../service/language.service","resolved":"src/app/service/language.service.ts","isExternal":false,"type":"import"}],"importedBy":["src/app/forms/forms.module.ts"],"importCount":6,"size":1299,"isOrphan":false,"isDeadCode":false}]},{"name":"kvkk","path":"src/app/forms/kvkk","type":"directory","children":[{"name":"kvkk.component.ts","path":"src/app/forms/kvkk/kvkk.component.ts","type":"file","children":[],"imports":[{"source":"@angular/core","resolved":null,"isExternal":true,"type":"import"},{"source":"@ngx-translate/core","resolved":null,"isExternal":true,"type":"import"}],"importedBy":["src/app/forms/forms.module.ts"],"importCount":2,"size":314,"isOrphan":false,"isDeadCode":false}]},{"name":"offer-request-block-lift","path":"src/app/forms/offer-request-block-lift","type":"directory","children":[{"name":"offer-request-block-lift.component.ts","path":"src/app/forms/offer-request-block-lift/offer-request-block-lift.component.ts","type":"file","children":[],"imports":[{"source":"@angular/core","resolved":null,"isExternal":true,"type":"import"},{"source":"@fortawesome/free-solid-svg-icons","resolved":null,"isExternal":true,"type":"import"},{"source":"@angular/forms","resolved":null,"isExternal":true,"type":"import"},{"source":"@angular/common/http","resolved":null,"isExternal":true,"type":"import"},{"source":"@ngx-translate/core","resolved":null,"isExternal":true,"type":"import"},{"source":"../../service/email.service","resolved":"src/app/service/email.service.ts","isExternal":false,"type":"import"},{"source":"../../service/gas-spring.service","resolved":"src/app/service/gas-spring.service.ts","isExternal":false,"type":"import"},{"source":"../../models/mail-request","resolved":"src/app/models/mail-request.ts","isExternal":false,"type":"import"},{"source":"dom-to-image-more","resolved":null,"isExternal":true,"type":"import"},{"source":"ngx-toastr","resolved":null,"isExternal":true,"type":"import"}],"importedBy":["src/app/forms/forms.module.ts"],"importCount":10,"size":27802,"isOrphan":false,"isDeadCode":false}]},{"name":"offer-request-ggs","path":"src/app/forms/offer-request-ggs","type":"directory","children":[{"name":"offer-request-ggs.component.ts","path":"src/app/forms/offer-request-ggs/offer-request-ggs.component.ts","type":"file","children":[],"imports":[{"source":"@angular/core","resolved":null,"isExternal":true,"type":"import"},{"source":"@fortawesome/free-solid-svg-icons","resolved":null,"isExternal":true,"type":"import"},{"source":"@angular/forms","resolved":null,"isExternal":true,"type":"import"},{"source":"@angular/common/http","resolved":null,"isExternal":true,"type":"import"},{"source":"@ngx-translate/core","resolved":null,"isExternal":true,"type":"import"},{"source":"../../service/email.service","resolved":"src/app/service/email.service.ts","isExternal":false,"type":"import"},{"source":"../../service/gas-spring.service","resolved":"src/app/service/gas-spring.service.ts","isExternal":false,"type":"import"},{"source":"../../models/mail-request","resolved":"src/app/models/mail-request.ts","isExternal":false,"type":"import"},{"source":"dom-to-image-more","resolved":null,"isExternal":true,"type":"import"},{"source":"ngx-toastr","resolved":null,"isExternal":true,"type":"import"}],"importedBy":["src/app/forms/forms.module.ts"],"importCount":10,"size":27825,"isOrphan":false,"isDeadCode":false}]},{"name":"offer-request-traction","path":"src/app/forms/offer-request-traction","type":"directory","children":[{"name":"offer-request-traction.component.ts","path":"src/app/forms/offer-request-traction/offer-request-traction.component.ts","type":"file","children":[],"imports":[{"source":"@angular/core","resolved":null,"isExternal":true,"type":"import"},{"source":"@fortawesome/free-solid-svg-icons","resolved":null,"isExternal":true,"type":"import"},{"source":"@angular/forms","resolved":null,"isExternal":true,"type":"import"},{"source":"@angular/common/http","resolved":null,"isExternal":true,"type":"import"},{"source":"@ngx-translate/core","resolved":null,"isExternal":true,"type":"import"},{"source":"../../service/email.service","resolved":"src/app/service/email.service.ts","isExternal":false,"type":"import"},{"source":"../../service/gas-spring.service","resolved":"src/app/service/gas-spring.service.ts","isExternal":false,"type":"import"},{"source":"../../models/mail-request","resolved":"src/app/models/mail-request.ts","isExternal":false,"type":"import"},{"source":"dom-to-image-more","resolved":null,"isExternal":true,"type":"import"},{"source":"ngx-toastr","resolved":null,"isExternal":true,"type":"import"}],"importedBy":["src/app/forms/forms.module.ts"],"importCount":10,"size":27069,"isOrphan":false,"isDeadCode":false}]}]},{"name":"guards","path":"src/app/guards","type":"directory","children":[{"name":"language.guard.ts","path":"src/app/guards/language.guard.ts","type":"file","children":[],"imports":[{"source":"@angular/router","resolved":null,"isExternal":true,"type":"import"},{"source":"@angular/core","resolved":null,"isExternal":true,"type":"import"},{"source":"../config/language.config","resolved":"src/app/config/language.config.ts","isExternal":false,"type":"import"}],"importedBy":["src/app/app-routing.module.ts"],"importCount":3,"size":657,"isOrphan":false,"isDeadCode":false}]},{"name":"landing","path":"src/app/landing","type":"directory","children":[{"name":"landing.component.ts","path":"src/app/landing/landing.component.ts","type":"file","children":[],"imports":[{"source":"@angular/core","resolved":null,"isExternal":true,"type":"import"},{"source":"@angular/router","resolved":null,"isExternal":true,"type":"import"},{"source":"../service/language.service","resolved":"src/app/service/language.service.ts","isExternal":false,"type":"import"},{"source":"@ngx-translate/core","resolved":null,"isExternal":true,"type":"import"}],"importedBy":["src/app/app.module.ts","src/app/app-routing.module.ts"],"importCount":4,"size":882,"isOrphan":false,"isDeadCode":false}]},{"name":"models","path":"src/app/models","type":"directory","children":[{"name":"mail-request.ts","path":"src/app/models/mail-request.ts","type":"file","children":[],"imports":[],"importedBy":["src/app/service/email.service.ts","src/app/forms/offer-request-traction/offer-request-traction.component.ts","src/app/forms/offer-request-ggs/offer-request-ggs.component.ts","src/app/forms/offer-request-block-lift/offer-request-block-lift.component.ts","src/app/forms/customer-satisfaction-form/customer-satisfaction-form.component.ts","src/app/forms/customer-satisfaction/customer-satisfaction.component.ts","src/app/forms/customer-feedback/customer-feedback.component.ts"],"importCount":0,"size":101,"isOrphan":false,"isDeadCode":false}]},{"name":"service","path":"src/app/service","type":"directory","children":[{"name":"email.service.ts","path":"src/app/service/email.service.ts","type":"file","children":[],"imports":[{"source":"@angular/core","resolved":null,"isExternal":true,"type":"import"},{"source":"@angular/common/http","resolved":null,"isExternal":true,"type":"import"},{"source":"rxjs","resolved":null,"isExternal":true,"type":"import"},{"source":"../models/mail-request","resolved":"src/app/models/mail-request.ts","isExternal":false,"type":"import"},{"source":"rxjs/operators","resolved":null,"isExternal":true,"type":"import"},{"source":"../environments/environment","resolved":"src/app/environments/environment.ts","isExternal":false,"type":"import"}],"importedBy":["src/app/forms/offer-request-traction/offer-request-traction.component.ts","src/app/forms/offer-request-ggs/offer-request-ggs.component.ts","src/app/forms/offer-request-block-lift/offer-request-block-lift.component.ts","src/app/forms/customer-feedback/customer-feedback.component.ts"],"importCount":6,"size":1078,"isOrphan":false,"isDeadCode":false},{"name":"gas-spring.service.ts","path":"src/app/service/gas-spring.service.ts","type":"file","children":[],"imports":[{"source":"@angular/core","resolved":null,"isExternal":true,"type":"import"},{"source":"@angular/common/http","resolved":null,"isExternal":true,"type":"import"},{"source":"rxjs","resolved":null,"isExternal":true,"type":"import"},{"source":"rxjs/operators","resolved":null,"isExternal":true,"type":"import"},{"source":"../environments/environment","resolved":"src/app/environments/environment.ts","isExternal":false,"type":"import"}],"importedBy":["src/app/forms/offer-request-traction/offer-request-traction.component.ts","src/app/forms/offer-request-ggs/offer-request-ggs.component.ts","src/app/forms/offer-request-block-lift/offer-request-block-lift.component.ts","src/app/forms/customer-satisfaction-form/customer-satisfaction-form.component.ts","src/app/forms/customer-satisfaction/customer-satisfaction.component.ts","src/app/forms/customer-feedback/customer-feedback.component.ts"],"importCount":5,"size":3654,"isOrphan":false,"isDeadCode":false},{"name":"language.service.ts","path":"src/app/service/language.service.ts","type":"file","children":[],"imports":[{"source":"@angular/core","resolved":null,"isExternal":true,"type":"import"},{"source":"@angular/router","resolved":null,"isExternal":true,"type":"import"},{"source":"@ngx-translate/core","resolved":null,"isExternal":true,"type":"import"},{"source":"rxjs/operators","resolved":null,"isExternal":true,"type":"import"},{"source":"../config/language.config","resolved":"src/app/config/language.config.ts","isExternal":false,"type":"import"}],"importedBy":["src/app/landing/landing.component.ts","src/app/forms/forms.component.ts","src/app/forms/header/header.component.ts"],"importCount":5,"size":2125,"isOrphan":false,"isDeadCode":false}]}]},{"name":"main.ts","path":"src/main.ts","type":"file","children":[],"imports":[{"source":"@angular/platform-browser-dynamic","resolved":null,"isExternal":true,"type":"import"},{"source":"./app/app.module","resolved":"src/app/app.module.ts","isExternal":false,"type":"import"}],"importedBy":[],"importCount":2,"size":221,"isOrphan":true,"isDeadCode":true},{"name":"proxy.conf.js","path":"src/proxy.conf.js","type":"file","children":[],"imports":[{"source":"process","resolved":null,"isExternal":true,"type":"require"}],"importedBy":[],"importCount":1,"size":379,"isOrphan":true,"isDeadCode":false}]}]},"externalNode":{"name":"External Packages","path":"__external__","type":"directory","children":[{"name":"@angular/core","path":"__external__/@angular/core","type":"external","children":[],"importedBy":["src/app/app.module.ts","src/app/app.component.ts","src/app/app-routing.module.ts","src/app/service/language.service.ts","src/app/service/gas-spring.service.ts","src/app/service/email.service.ts","src/app/landing/landing.component.ts","src/app/guards/language.guard.ts","src/app/forms/forms.module.ts","src/app/forms/forms.component.ts","src/app/forms/offer-request-traction/offer-request-traction.component.ts","src/app/forms/offer-request-ggs/offer-request-ggs.component.ts","src/app/forms/offer-request-block-lift/offer-request-block-lift.component.ts","src/app/forms/kvkk/kvkk.component.ts","src/app/forms/header/header.component.ts","src/app/forms/customer-satisfaction-form/customer-satisfaction-form.component.ts","src/app/forms/customer-satisfaction/customer-satisfaction.component.ts","src/app/forms/customer-feedback/customer-feedback.component.ts"],"importCount":18},{"name":"@ngx-translate/core","path":"__external__/@ngx-translate/core","type":"external","children":[],"importedBy":["src/app/app.module.ts","src/app/service/language.service.ts","src/app/landing/landing.component.ts","src/app/forms/forms.module.ts","src/app/forms/offer-request-traction/offer-request-traction.component.ts","src/app/forms/offer-request-ggs/offer-request-ggs.component.ts","src/app/forms/offer-request-block-lift/offer-request-block-lift.component.ts","src/app/forms/kvkk/kvkk.component.ts","src/app/forms/header/header.component.ts","src/app/forms/customer-satisfaction-form/customer-satisfaction-form.component.ts","src/app/forms/customer-satisfaction/customer-satisfaction.component.ts","src/app/forms/customer-feedback/customer-feedback.component.ts"],"importCount":12},{"name":"@angular/material","path":"__external__/@angular/material","type":"external","children":[],"importedBy":["src/app/forms/forms.module.ts"],"importCount":11},{"name":"@angular/common","path":"__external__/@angular/common","type":"external","children":[],"importedBy":["src/app/app.module.ts","src/app/service/gas-spring.service.ts","src/app/service/email.service.ts","src/app/forms/forms.module.ts","src/app/forms/offer-request-traction/offer-request-traction.component.ts","src/app/forms/offer-request-ggs/offer-request-ggs.component.ts","src/app/forms/offer-request-block-lift/offer-request-block-lift.component.ts","src/app/forms/customer-satisfaction-form/customer-satisfaction-form.component.ts","src/app/forms/customer-satisfaction/customer-satisfaction.component.ts","src/app/forms/customer-feedback/customer-feedback.component.ts"],"importCount":10},{"name":"ngx-toastr","path":"__external__/ngx-toastr","type":"external","children":[],"importedBy":["src/app/app.module.ts","src/app/forms/offer-request-traction/offer-request-traction.component.ts","src/app/forms/offer-request-ggs/offer-request-ggs.component.ts","src/app/forms/offer-request-block-lift/offer-request-block-lift.component.ts","src/app/forms/customer-satisfaction-form/customer-satisfaction-form.component.ts","src/app/forms/customer-satisfaction/customer-satisfaction.component.ts","src/app/forms/customer-feedback/customer-feedback.component.ts"],"importCount":7},{"name":"@angular/forms","path":"__external__/@angular/forms","type":"external","children":[],"importedBy":["src/app/forms/forms.module.ts","src/app/forms/offer-request-traction/offer-request-traction.component.ts","src/app/forms/offer-request-ggs/offer-request-ggs.component.ts","src/app/forms/offer-request-block-lift/offer-request-block-lift.component.ts","src/app/forms/customer-satisfaction-form/customer-satisfaction-form.component.ts","src/app/forms/customer-satisfaction/customer-satisfaction.component.ts","src/app/forms/customer-feedback/customer-feedback.component.ts"],"importCount":7},{"name":"@angular/router","path":"__external__/@angular/router","type":"external","children":[],"importedBy":["src/app/app-routing.module.ts","src/app/service/language.service.ts","src/app/landing/landing.component.ts","src/app/guards/language.guard.ts","src/app/forms/forms.module.ts","src/app/forms/header/header.component.ts"],"importCount":6},{"name":"rxjs","path":"__external__/rxjs","type":"external","children":[],"importedBy":["src/app/service/language.service.ts","src/app/service/gas-spring.service.ts","src/app/service/email.service.ts"],"importCount":5},{"name":"@fortawesome/free-solid-svg-icons","path":"__external__/@fortawesome/free-solid-svg-icons","type":"external","children":[],"importedBy":["src/app/forms/offer-request-traction/offer-request-traction.component.ts","src/app/forms/offer-request-ggs/offer-request-ggs.component.ts","src/app/forms/offer-request-block-lift/offer-request-block-lift.component.ts","src/app/forms/header/header.component.ts"],"importCount":4},{"name":"@angular/platform-browser","path":"__external__/@angular/platform-browser","type":"external","children":[],"importedBy":["src/app/app.module.ts"],"importCount":3},{"name":"dom-to-image-more","path":"__external__/dom-to-image-more","type":"external","children":[],"importedBy":["src/app/forms/offer-request-traction/offer-request-traction.component.ts","src/app/forms/offer-request-ggs/offer-request-ggs.component.ts","src/app/forms/offer-request-block-lift/offer-request-block-lift.component.ts"],"importCount":3},{"name":"path","path":"__external__/path","type":"external","children":[],"importedBy":["karma.conf.js","aspnetcore-https.js"],"importCount":2},{"name":"@fortawesome/angular-fontawesome","path":"__external__/@fortawesome/angular-fontawesome","type":"external","children":[],"importedBy":["src/app/forms/forms.module.ts","src/app/forms/header/header.component.ts"],"importCount":2},{"name":"karma-jasmine","path":"__external__/karma-jasmine","type":"external","children":[],"importedBy":["karma.conf.js"],"importCount":1},{"name":"karma-chrome-launcher","path":"__external__/karma-chrome-launcher","type":"external","children":[],"importedBy":["karma.conf.js"],"importCount":1},{"name":"karma-jasmine-html-reporter","path":"__external__/karma-jasmine-html-reporter","type":"external","children":[],"importedBy":["karma.conf.js"],"importCount":1},{"name":"karma-coverage","path":"__external__/karma-coverage","type":"external","children":[],"importedBy":["karma.conf.js"],"importCount":1},{"name":"@angular-devkit/build-angular","path":"__external__/@angular-devkit/build-angular","type":"external","children":[],"importedBy":["karma.conf.js"],"importCount":1},{"name":"fs","path":"__external__/fs","type":"external","children":[],"importedBy":["aspnetcore-https.js"],"importCount":1},{"name":"child_process","path":"__external__/child_process","type":"external","children":[],"importedBy":["aspnetcore-https.js"],"importCount":1},{"name":"process","path":"__external__/process","type":"external","children":[],"importedBy":["src/proxy.conf.js"],"importCount":1},{"name":"@angular/platform-browser-dynamic","path":"__external__/@angular/platform-browser-dynamic","type":"external","children":[],"importedBy":["src/main.ts"],"importCount":1},{"name":"@ngx-translate/http-loader","path":"__external__/@ngx-translate/http-loader","type":"external","children":[],"importedBy":["src/app/app.module.ts"],"importCount":1},{"name":"ng-lazyload-image","path":"__external__/ng-lazyload-image","type":"external","children":[],"importedBy":["src/app/forms/forms.module.ts"],"importCount":1},{"name":"html2canvas","path":"__external__/html2canvas","type":"external","children":[],"importedBy":["src/app/forms/customer-feedback/customer-feedback.component.ts"],"importCount":1}]},"stats":{"totalFiles":25,"totalImports":143,"totalExternalPackages":25,"totalLocalImports":41,"totalExternalImports":102,"totalSize":153294,"orphanCount":5,"deadCodeCount":2,"circularDependencies":[],"hotspots":[{"path":"src/app/models/mail-request.ts","importedByCount":7},{"path":"src/app/service/gas-spring.service.ts","importedByCount":6},{"path":"src/app/service/email.service.ts","importedByCount":4},{"path":"src/app/service/language.service.ts","importedByCount":3},{"path":"src/app/landing/landing.component.ts","importedByCount":2}]}};
 
     // ─── Icon Data URIs ───
     const ICONS = {
@@ -1089,6 +1217,8 @@
       document.getElementById('countLocal').textContent = DATA.stats.totalFiles;
       document.getElementById('countExternal').textContent = DATA.stats.totalExternalPackages;
       document.getElementById('countOrphan').textContent = DATA.stats.orphanCount || 0;
+      const deadEl = document.getElementById('countDead');
+      if (deadEl) deadEl.textContent = DATA.stats.deadCodeCount || 0;
 
       // Show circular dependencies
       if (DATA.stats.circularDependencies && DATA.stats.circularDependencies.length > 0) {
@@ -1106,6 +1236,27 @@
         }).join('');
       }
 
+      // Show dead code panel
+      const deadFiles = [];
+      function collectDeadCode(node) {
+        if (node.isDeadCode) deadFiles.push(node);
+        if (node.children) node.children.forEach(collectDeadCode);
+      }
+      collectDeadCode(DATA.root);
+      if (deadFiles.length > 0) {
+        document.getElementById('deadCodePanel').style.display = 'block';
+        const deadCodeContent = document.getElementById('deadCodeContent');
+        deadCodeContent.innerHTML = deadFiles.map(n => {
+          return '<div class="dead-code-item" data-path="' + escapeHtml(n.path) + '">' +
+            '<span style="flex:1;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;" title="' + escapeHtml(n.path) + '">' + escapeHtml(n.name) + '</span>' +
+            '<span style="font-size:10px;color:var(--text-muted);flex-shrink:0;">' + (n.size ? formatBytes(n.size, 0) : '') + '</span>' +
+            '</div>';
+        }).join('');
+        deadCodeContent.querySelectorAll('.dead-code-item').forEach(el => {
+          el.addEventListener('click', () => selectDeadCodeFile(el.dataset.path));
+        });
+      }
+
       // Expand root by default
       expandedNodes.add('');
       expandedNodes.add('__external__');
@@ -1119,6 +1270,7 @@
       document.getElementById('filterLocal').addEventListener('click', () => setFilter('local'));
       document.getElementById('filterExternal').addEventListener('click', () => setFilter('external'));
       document.getElementById('filterOrphan').addEventListener('click', () => setFilter('orphan'));
+      document.getElementById('filterDead').addEventListener('click', () => setFilter('dead'));
       document.getElementById('expandAllBtn').addEventListener('click', expandAll);
       document.getElementById('collapseAllBtn').addEventListener('click', collapseAll);
 
@@ -1203,6 +1355,11 @@
          if (!hasOrphanMatch(node)) return div;
       }
 
+      if (currentFilter === 'dead') {
+         if (node.path === '__external__' || node.type === 'external') return div;
+         if (!hasDeadCodeMatch(node)) return div;
+      }
+
       // If search active and nothing matches, hide
       if (searchQuery && !matchesSearch && !anyChildMatches) {
         div.style.display = 'none';
@@ -1263,6 +1420,13 @@
         badge.className = 'tree-badge orphan';
         badge.textContent = 'Orphan';
         badge.title = 'Not imported by any file';
+        row.appendChild(badge);
+      }
+      if (node.isDeadCode) {
+        const badge = document.createElement('span');
+        badge.className = 'tree-badge dead-code';
+        badge.textContent = '  Dead';
+        badge.title = 'Dead code — not imported and has no exports';
         row.appendChild(badge);
       }
       if (node.size !== undefined) {
@@ -1346,6 +1510,15 @@
       return false;
     }
 
+    function hasDeadCodeMatch(node) {
+      if (node.isDeadCode) return true;
+      if (!node.children) return false;
+      for (const child of node.children) {
+        if (hasDeadCodeMatch(child)) return true;
+      }
+      return false;
+    }
+
     // ─── Detail Panel ───
     function showDetail(node) {
       const title = document.getElementById('detailTitle');
@@ -1354,9 +1527,11 @@
       title.textContent = node.name;
 
       let html = '';
-      
-      if (node.isOrphan) {
-         html += '<div style="margin-bottom: 12px;"><span class="tree-badge orphan" style="font-size:12px; padding: 4px 8px;">🗑 Orphan (Unused)</span></div>';
+
+      if (node.isDeadCode) {
+        html += '<div style="margin-bottom:12px;"><span class="tree-badge dead-code" style="font-size:12px;padding:4px 10px;">  Dead Code — not imported &amp; no exports</span></div>';
+      } else if (node.isOrphan) {
+        html += '<div style="margin-bottom: 12px;"><span class="tree-badge orphan" style="font-size:12px; padding: 4px 8px;">🗑 Orphan (Unused)</span></div>';
       }
       if (node.size !== undefined) {
          html += '<div style="margin-bottom: 12px; color: var(--text-muted); font-size: 13px;">File Size: <strong>' + formatBytes(node.size) + '</strong></div>';
@@ -1485,42 +1660,86 @@
       }
     }
 
-    // ─── Graph Engine ───
-    let graph = { nodes: [], edges: [], clusters: {} };
+    // ─── Graph Engine (Flowchart / Hierarchical Layout) ───
+    let graph = { nodes: [], edges: [], clusters: {}, layers: [] };
     let canvas, ctx;
     let transform = { x: 0, y: 0, k: 1 };
     let isDragging = false;
     let dragStart = { x: 0, y: 0 };
-    let draggedNode = null;
     let hoveredNode = null;
-    let animationFrameId;
+
+    // Flowchart node dimensions
+    const NODE_W = 140;
+    const NODE_H = 34;
+    const NODE_R = 8;
+
+    // Settings
+    let graphSettings = {
+      direction: 'TB',
+      spacingMult: 1.5,
+      groupByFolder: true
+    };
+
+    // Colors per cluster
+    const CLUSTER_COLORS = [
+      { bg: 'rgba(59,130,246,0.07)', border: 'rgba(59,130,246,0.3)' },
+      { bg: 'rgba(168,85,247,0.07)', border: 'rgba(168,85,247,0.3)' },
+      { bg: 'rgba(34,197,94,0.07)', border: 'rgba(34,197,94,0.3)' },
+      { bg: 'rgba(249,115,22,0.07)', border: 'rgba(249,115,22,0.3)' },
+      { bg: 'rgba(236,72,153,0.07)', border: 'rgba(236,72,153,0.3)' },
+      { bg: 'rgba(20,184,166,0.07)', border: 'rgba(20,184,166,0.3)' },
+      { bg: 'rgba(245,158,11,0.07)', border: 'rgba(245,158,11,0.3)' },
+      { bg: 'rgba(99,102,241,0.07)', border: 'rgba(99,102,241,0.3)' },
+    ];
 
     function initGraph() {
       canvas = document.getElementById('graphCanvas');
       ctx = canvas.getContext('2d');
       
-      const resizeContent = () => {
+      const resizeCanvas = () => {
         const rect = canvas.parentElement.getBoundingClientRect();
         canvas.width = rect.width;
         canvas.height = rect.height;
         if (graph.nodes.length > 0) drawGraph();
       };
-      window.addEventListener('resize', resizeContent);
-      resizeContent();
+      window.addEventListener('resize', resizeCanvas);
+      resizeCanvas();
       
       canvas.addEventListener('mousedown', onGraphMouseDown);
       window.addEventListener('mousemove', onGraphMouseMove);
       window.addEventListener('mouseup', onGraphMouseUp);
       canvas.addEventListener('wheel', onGraphWheel, { passive: false });
       
-      document.getElementById('resetGraphBtn').addEventListener('click', fitGraph);
-      document.getElementById('zoomInBtn').addEventListener('click', () => { zoom(1.2); });
-      document.getElementById('zoomOutBtn').addEventListener('click', () => { zoom(0.8); });
+      document.getElementById('resetGraphBtn').addEventListener('click', () => { rebuildLayout(); fitGraph(); });
+      document.getElementById('zoomInBtn').addEventListener('click', () => { zoom(1.3); });
+      document.getElementById('zoomOutBtn').addEventListener('click', () => { zoom(0.7); });
       document.getElementById('fitBtn').addEventListener('click', fitGraph);
       
+      // Settings controls
+      document.getElementById('layoutDirectionSelect').addEventListener('change', (ev) => {
+        graphSettings.direction = ev.target.value;
+        rebuildLayout();
+        fitGraph();
+      });
+      document.getElementById('spacingSlider').addEventListener('input', (ev) => {
+        graphSettings.spacingMult = ev.target.value / 100;
+        rebuildLayout();
+        fitGraph();
+      });
+      document.getElementById('groupByFolderToggle').addEventListener('change', (ev) => {
+        graphSettings.groupByFolder = ev.target.checked;
+        rebuildLayout();
+        fitGraph();
+      });
+      
       buildGraphData();
+      computeLayout();
       fitGraph();
-      startSimulation();
+    }
+
+    function rebuildLayout() {
+      computeLayout();
+      drawGraph();
     }
 
     function buildGraphData() {
@@ -1539,15 +1758,6 @@
         const id = n.path;
         const cluster = isEx ? '__external__' : (id.substring(0, id.lastIndexOf('/')) || '/');
         
-        const nodeColor = getComputedStyle(document.documentElement).getPropertyValue('--text-secondary').trim() || '#3f3f46';
-        const extColor = getComputedStyle(document.documentElement).getPropertyValue('--text-primary').trim() || '#000';
-        
-        let calculatedRadius = isEx ? 8 : 6;
-        if (!isEx && n.size !== undefined) {
-           // Scale radius smoothly between 4px and 24px based on size
-           calculatedRadius = Math.max(4, Math.min(24, 4 + Math.sqrt(n.size) / 15));
-        }
-        
         const nodeObj = {
           id,
           label: n.name,
@@ -1555,11 +1765,10 @@
           isExternal: isEx,
           cluster,
           imports: n.imports || [],
-          x: (Math.random()-0.5)*canvas.width,
-          y: (Math.random()-0.5)*canvas.height,
-          vx: 0, vy: 0,
-          radius: calculatedRadius,
-          color: isEx ? extColor : nodeColor,
+          x: 0, y: 0,
+          w: NODE_W, h: NODE_H,
+          layer: 0, order: 0,
+          color: '',
           nodeRef: n
         };
         nodesMap.set(id, nodeObj);
@@ -1588,100 +1797,162 @@
       }
     }
 
-    function startSimulation() {
-      if (animationFrameId) cancelAnimationFrame(animationFrameId);
-      
-      // Pre-calculate positions synchronously for a static graph
-      let alpha = 1;
-      const decay = 0.96;
-      
-      // Run N iterations to settle the graph
-      for (let i = 0; i < 150; i++) {
-        alpha *= decay;
-        computeForces(alpha);
-        updatePositions();
-      }
-      
-      // Final render
-      drawGraph();
-    }
+    // ── Hierarchical layout (Sugiyama-style) ──
+    function computeLayout() {
+      const isLR = graphSettings.direction === 'LR';
+      const spaceMult = graphSettings.spacingMult;
+      const LAYER_GAP = (isLR ? 220 : 100) * spaceMult;
+      const NODE_GAP = (isLR ? 46 : 50) * spaceMult;
 
-    function computeForces(alpha) {
-      const k = 0.1; 
-      const push = 3000; 
-      const centerForce = 0.02;
-      const clusterForce = 1.2;
-      
-      for(let i=0; i<graph.nodes.length; i++) {
-        for(let j=i+1; j<graph.nodes.length; j++) {
-          const n1 = graph.nodes[i];
-          const n2 = graph.nodes[j];
-          let dx = n2.x - n1.x;
-          let dy = n2.y - n1.y;
-          if(dx===0 && dy===0) { dx=(Math.random()-0.5); dy=(Math.random()-0.5); }
-          const distSq = dx*dx + dy*dy;
-          
-          if (n1.cluster === n2.cluster && distSq < 40000) {
-            const pull = clusterForce * alpha;
-            n1.vx += dx * pull * 0.01;
-            n1.vy += dy * pull * 0.01;
-            n2.vx -= dx * pull * 0.01;
-            n2.vy -= dy * pull * 0.01;
+      // 1) Assign layers via longest-path from roots
+      const inDegree = new Map();
+      const outAdj = new Map();
+      for (const n of graph.nodes) { inDegree.set(n, 0); outAdj.set(n, []); }
+      for (const e of graph.edges) {
+        inDegree.set(e.target, (inDegree.get(e.target) || 0) + 1);
+        outAdj.get(e.source).push(e.target);
+      }
+
+      const roots = graph.nodes.filter(n => inDegree.get(n) === 0);
+      const layerOf = new Map();
+      const visited = new Set();
+      const queue = [];
+      for (const r of roots) { layerOf.set(r, 0); queue.push(r); visited.add(r); }
+      for (const n of graph.nodes) {
+        if (!visited.has(n)) { layerOf.set(n, 0); queue.push(n); visited.add(n); }
+      }
+
+      let head = 0;
+      while (head < queue.length) {
+        const cur = queue[head++];
+        const curLayer = layerOf.get(cur);
+        for (const child of outAdj.get(cur)) {
+          const newLayer = curLayer + 1;
+          if (!layerOf.has(child) || layerOf.get(child) < newLayer) {
+            layerOf.set(child, newLayer);
           }
-          
-          const force = push / distSq * alpha;
-          const dist = Math.sqrt(distSq);
-          n1.vx -= (dx/dist) * force;
-          n1.vy -= (dy/dist) * force;
-          n2.vx += (dx/dist) * force;
-          n2.vy += (dy/dist) * force;
+          if (!visited.has(child)) {
+            visited.add(child);
+            queue.push(child);
+          }
         }
       }
-      
-      for(const e of graph.edges) {
-        const dx = e.target.x - e.source.x;
-        const dy = e.target.y - e.source.y;
-        const dist = Math.sqrt(dx*dx + dy*dy) || 1;
-        const targetDist = 80;
-        const force = (dist - targetDist) * k * alpha;
-        
-        e.source.vx += (dx/dist) * force;
-        e.source.vy += (dy/dist) * force;
-        e.target.vx -= (dx/dist) * force;
-        e.target.vy -= (dy/dist) * force;
-      }
-      
-      for(const n of graph.nodes) {
-        n.vx -= n.x * centerForce * alpha;
-        n.vy -= n.y * centerForce * alpha;
-      }
-    }
 
-    function updatePositions() {
-      const damp = 0.6;
-      for(const n of graph.nodes) {
-        if (n === draggedNode) continue;
-        n.vx *= damp;
-        n.vy *= damp;
-        n.x += n.vx;
-        n.y += n.vy;
+      let maxLayer = 0;
+      for (const n of graph.nodes) {
+        n.layer = layerOf.get(n) || 0;
+        if (n.layer > maxLayer) maxLayer = n.layer;
       }
+
+      // 2) Group into layers
+      const layers = [];
+      for (let i = 0; i <= maxLayer; i++) layers.push([]);
+      for (const n of graph.nodes) layers[n.layer].push(n);
+
+      for (const layer of layers) {
+        layer.sort((a, b) => {
+          if (graphSettings.groupByFolder) {
+            const ca = a.cluster.localeCompare(b.cluster);
+            if (ca !== 0) return ca;
+          }
+          return a.label.localeCompare(b.label);
+        });
+      }
+
+      // 3) Reduce crossings: barycenter heuristic
+      for (let pass = 0; pass < 4; pass++) {
+        for (let li = 1; li < layers.length; li++) {
+          for (const n of layers[li]) {
+            const parents = graph.edges
+              .filter(e => e.target === n && e.source.layer === li - 1)
+              .map(e => layers[li-1].indexOf(e.source))
+              .filter(idx => idx >= 0);
+            n._bary = parents.length > 0
+              ? parents.reduce((a,b) => a+b, 0) / parents.length
+              : layers[li].indexOf(n);
+          }
+          layers[li].sort((a, b) => a._bary - b._bary);
+        }
+        for (let li = layers.length - 2; li >= 0; li--) {
+          for (const n of layers[li]) {
+            const children = graph.edges
+              .filter(e => e.source === n && e.target.layer === li + 1)
+              .map(e => layers[li+1].indexOf(e.target))
+              .filter(idx => idx >= 0);
+            n._bary = children.length > 0
+              ? children.reduce((a,b) => a+b, 0) / children.length
+              : layers[li].indexOf(n);
+          }
+          layers[li].sort((a, b) => a._bary - b._bary);
+        }
+      }
+
+      // 4) Assign coordinates
+      for (let li = 0; li < layers.length; li++) {
+        const layer = layers[li];
+        const totalWidth = layer.length * (NODE_W + NODE_GAP) - NODE_GAP;
+        const startOffset = -totalWidth / 2;
+        for (let ni = 0; ni < layer.length; ni++) {
+          const n = layer[ni];
+          n.order = ni;
+          if (isLR) {
+            n.x = li * (NODE_W + LAYER_GAP);
+            n.y = startOffset + ni * (NODE_H + NODE_GAP);
+          } else {
+            n.x = startOffset + ni * (NODE_W + NODE_GAP);
+            n.y = li * (NODE_H + LAYER_GAP);
+          }
+        }
+      }
+
+      graph.layers = layers;
     }
 
     function isNodeVisible(n) {
       if (currentFilter === 'local' && n.isExternal) return false;
       if (currentFilter === 'external' && !n.isExternal) return false;
       if (currentFilter === 'orphan') {
-         // In graph view, show ONLY orphans and their clusters
-         // Since clusters are virtual, nodes must be strictly an orphan
-         if (n.type === 'directory') {
-            // we don't visualize directories directly as nodes anyway, but if we did
-            return false; 
-         }
          return n.nodeRef && n.nodeRef.isOrphan;
+      }
+      if (currentFilter === 'dead') {
+         return n.nodeRef && n.nodeRef.isDeadCode;
       }
       if (searchQuery && !n.label.toLowerCase().includes(searchQuery.toLowerCase())) return false;
       return true;
+    }
+
+    function isConnected(a, b) {
+      for (const e of graph.edges) {
+        if ((e.source === a && e.target === b) || (e.source === b && e.target === a)) return true;
+      }
+      return false;
+    }
+
+    function hitTest(px, py, n) {
+      return px >= n.x && px <= n.x + n.w && py >= n.y && py <= n.y + n.h;
+    }
+
+    function nodeAtPoint(px, py) {
+      for (let i = graph.nodes.length - 1; i >= 0; i--) {
+        const n = graph.nodes[i];
+        if (!isNodeVisible(n)) continue;
+        if (hitTest(px, py, n)) return n;
+      }
+      return null;
+    }
+
+    function drawRoundedRect(x, y, w, h, r) {
+      ctx.beginPath();
+      ctx.moveTo(x + r, y);
+      ctx.lineTo(x + w - r, y);
+      ctx.quadraticCurveTo(x + w, y, x + w, y + r);
+      ctx.lineTo(x + w, y + h - r);
+      ctx.quadraticCurveTo(x + w, y + h, x + w - r, y + h);
+      ctx.lineTo(x + r, y + h);
+      ctx.quadraticCurveTo(x, y + h, x, y + h - r);
+      ctx.lineTo(x, y + r);
+      ctx.quadraticCurveTo(x, y, x + r, y);
+      ctx.closePath();
     }
 
     function drawGraph() {
@@ -1689,95 +1960,171 @@
       const lineColor = getComputedStyle(document.documentElement).getPropertyValue('--border-color').trim();
       const highlightColor = getComputedStyle(document.documentElement).getPropertyValue('--text-primary').trim();
       const textColor = getComputedStyle(document.documentElement).getPropertyValue('--text-primary').trim();
-      
-      for (const n of graph.nodes) {
-         n.color = n.isExternal 
-           ? (getComputedStyle(document.documentElement).getPropertyValue('--text-primary').trim() || '#000')
-           : (getComputedStyle(document.documentElement).getPropertyValue('--text-muted').trim() || '#71717a');
-      }
+      const mutedColor = getComputedStyle(document.documentElement).getPropertyValue('--text-muted').trim() || '#71717a';
+      const isLR = graphSettings.direction === 'LR';
 
       ctx.clearRect(0, 0, canvas.width, canvas.height);
       ctx.save();
       ctx.translate(canvas.width/2 + transform.x, canvas.height/2 + transform.y);
       ctx.scale(transform.k, transform.k);
-      
-      ctx.lineWidth = 1;
-      for(const e of graph.edges) {
-        const sourceVisible = isNodeVisible(e.source);
-        const targetVisible = isNodeVisible(e.target);
-        const edgeVisible = sourceVisible || targetVisible;
-        
-        if (!edgeVisible) continue; // Skip completely hidden edges
-        
-        let isHighlight = false;
-        if (hoveredNode && (e.source === hoveredNode || e.target === hoveredNode)) isHighlight = true;
-        
-        ctx.strokeStyle = isHighlight ? highlightColor : lineColor;
-        ctx.lineWidth = isHighlight ? 2 / transform.k : 1 / transform.k;
-        
-        if (hoveredNode && !isHighlight) {
-          ctx.strokeStyle = isDark ? 'rgba(255,255,255,0.05)' : 'rgba(0,0,0,0.05)';
-        } else if (!sourceVisible || !targetVisible) {
-          ctx.strokeStyle = isDark ? 'rgba(255,255,255,0.1)' : 'rgba(0,0,0,0.1)';
+
+      // ── Cluster group backgrounds ──
+      if (graphSettings.groupByFolder) {
+        const clusterKeys = Object.keys(graph.clusters).filter(k => k !== '__external__');
+        let ci = 0;
+        for (const key of clusterKeys) {
+          const members = graph.clusters[key].filter(n => isNodeVisible(n));
+          if (members.length === 0) { ci++; continue; }
+          let minX = Infinity, minY = Infinity, maxX = -Infinity, maxY = -Infinity;
+          for (const m of members) {
+            if (m.x < minX) minX = m.x;
+            if (m.y < minY) minY = m.y;
+            if (m.x + m.w > maxX) maxX = m.x + m.w;
+            if (m.y + m.h > maxY) maxY = m.y + m.h;
+          }
+          const pad = 18 / transform.k;
+          const col = CLUSTER_COLORS[ci % CLUSTER_COLORS.length];
+          ctx.save();
+          ctx.globalAlpha = hoveredNode ? 0.25 : 0.55;
+          drawRoundedRect(minX - pad, minY - pad - 16/transform.k, maxX - minX + pad*2, maxY - minY + pad*2 + 16/transform.k, 10/transform.k);
+          ctx.fillStyle = col.bg;
+          ctx.fill();
+          ctx.setLineDash([6/transform.k, 4/transform.k]);
+          ctx.strokeStyle = col.border;
+          ctx.lineWidth = 1.2 / transform.k;
+          ctx.stroke();
+          ctx.setLineDash([]);
+          // cluster label
+          if (transform.k > 0.25) {
+            ctx.globalAlpha = 0.65;
+            ctx.fillStyle = col.border;
+            ctx.font = 'bold ' + (10/transform.k) + 'px "Inter"';
+            ctx.textAlign = 'left';
+            ctx.textBaseline = 'bottom';
+            const lbl = key === '/' ? '(root)' : key.split('/').pop();
+            ctx.fillText(lbl, minX - pad + 6/transform.k, minY - pad);
+          }
+          ctx.restore();
+          ci++;
         }
-        
-        ctx.beginPath();
-        ctx.moveTo(e.source.x, e.source.y);
-        ctx.lineTo(e.target.x, e.target.y);
-        ctx.stroke();
-        
-        if (isHighlight) drawArrowHead(ctx, e.source.x, e.source.y, e.target.x, e.target.y, e.target.radius + 2);
       }
-      
-      for(const n of graph.nodes) {
+
+      // ── Draw edges (bezier connectors) ──
+      for (const e of graph.edges) {
+        const srcVis = isNodeVisible(e.source);
+        const tgtVis = isNodeVisible(e.target);
+        if (!srcVis && !tgtVis) continue;
+
+        let isHL = false;
+        if (hoveredNode && (e.source === hoveredNode || e.target === hoveredNode)) isHL = true;
+
+        if (hoveredNode && !isHL) {
+          ctx.globalAlpha = 0.04;
+          ctx.strokeStyle = isDark ? 'rgba(255,255,255,1)' : 'rgba(0,0,0,1)';
+        } else if (!srcVis || !tgtVis) {
+          ctx.globalAlpha = 0.12;
+          ctx.strokeStyle = lineColor;
+        } else if (isHL) {
+          ctx.globalAlpha = 1;
+          ctx.strokeStyle = highlightColor;
+        } else {
+          ctx.globalAlpha = 0.35;
+          ctx.strokeStyle = lineColor;
+        }
+
+        ctx.lineWidth = isHL ? 2 / transform.k : 0.8 / transform.k;
+
+        // connector points: center of right/bottom edge → center of left/top edge
+        let sx, sy, tx, ty;
+        if (isLR) {
+          sx = e.source.x + e.source.w; sy = e.source.y + e.source.h / 2;
+          tx = e.target.x;              ty = e.target.y + e.target.h / 2;
+        } else {
+          sx = e.source.x + e.source.w / 2; sy = e.source.y + e.source.h;
+          tx = e.target.x + e.target.w / 2; ty = e.target.y;
+        }
+
+        const midMain = isLR ? (sx + tx) / 2 : (sy + ty) / 2;
+        ctx.beginPath();
+        ctx.moveTo(sx, sy);
+        if (isLR) {
+          ctx.bezierCurveTo(midMain, sy, midMain, ty, tx, ty);
+        } else {
+          ctx.bezierCurveTo(sx, midMain, tx, midMain, tx, ty);
+        }
+        ctx.stroke();
+
+        // arrowhead
+        if (isHL || ctx.globalAlpha > 0.1) {
+          const aLen = 7 / transform.k;
+          const angle = Math.atan2(ty - sy, tx - sx);
+          ctx.beginPath();
+          ctx.moveTo(tx, ty);
+          ctx.lineTo(tx - aLen * Math.cos(angle - Math.PI/7), ty - aLen * Math.sin(angle - Math.PI/7));
+          ctx.lineTo(tx - aLen * Math.cos(angle + Math.PI/7), ty - aLen * Math.sin(angle + Math.PI/7));
+          ctx.closePath();
+          ctx.fillStyle = ctx.strokeStyle;
+          ctx.fill();
+        }
+      }
+
+      ctx.globalAlpha = 1;
+
+      // ── Draw nodes (rounded rectangles) ──
+      for (const n of graph.nodes) {
         const visible = isNodeVisible(n);
         let opacity = visible ? 1 : 0.05;
-        
-        if (visible && hoveredNode && hoveredNode !== n && !isConnected(n, hoveredNode)) opacity = 0.2;
-        
-        ctx.beginPath();
-        ctx.arc(n.x, n.y, n.radius, 0, Math.PI*2);
-        ctx.fillStyle = n.color;
+        if (visible && hoveredNode && hoveredNode !== n && !isConnected(n, hoveredNode)) opacity = 0.15;
+
+        const isDeadCode = !n.isExternal && n.nodeRef && n.nodeRef.isDeadCode;
+
+        ctx.save();
         ctx.globalAlpha = opacity;
+
+        // Node background
+        const fillCol = isDeadCode
+          ? (isDark ? 'rgba(100,30,30,0.9)' : 'rgba(220,80,80,0.7)')
+          : n.isExternal
+            ? (isDark ? '#27272a' : '#f4f4f5')
+            : (isDark ? '#18181b' : '#ffffff');
+
+        drawRoundedRect(n.x, n.y, n.w, n.h, NODE_R);
+        ctx.fillStyle = fillCol;
         ctx.fill();
-        ctx.strokeStyle = '#181825';
-        ctx.lineWidth = 2 / transform.k;
-        ctx.stroke();
-        
-        if ((n === hoveredNode || transform.k > 1.2) && visible) {
-          ctx.globalAlpha = visible ? 1 : 0.2;
-          ctx.fillStyle = textColor;
-          ctx.font = (10/transform.k) + 'px "JetBrains Mono"';
-          ctx.textAlign = 'center';
-          ctx.textBaseline = 'top';
-          ctx.fillText(n.label, n.x, n.y + n.radius + 4/transform.k);
+
+        // Dead code dashed border
+        if (isDeadCode && visible) {
+          ctx.setLineDash([4/transform.k, 3/transform.k]);
+          ctx.strokeStyle = isDark ? 'rgba(248,113,113,0.9)' : 'rgba(185,28,28,0.8)';
+          ctx.lineWidth = 2 / transform.k;
+          ctx.stroke();
+          ctx.setLineDash([]);
+        } else {
+          ctx.strokeStyle = (hoveredNode === n)
+            ? highlightColor
+            : (isDark ? '#3f3f46' : '#d4d4d8');
+          ctx.lineWidth = (hoveredNode === n ? 2 : 1) / transform.k;
+          ctx.stroke();
         }
+
+        // Label inside node
+        if (transform.k > 0.15) {
+          const fontSize = Math.max(6, Math.min(11, 11 / transform.k));
+          ctx.fillStyle = isDeadCode ? (isDark ? '#f87171' : '#b91c1c')
+            : n.isExternal ? mutedColor : textColor;
+          ctx.font = fontSize + 'px "JetBrains Mono"';
+          ctx.textAlign = 'center';
+          ctx.textBaseline = 'middle';
+          const maxChars = Math.floor(n.w / (fontSize * 0.62));
+          let lbl = n.label;
+          if (lbl.length > maxChars) lbl = lbl.slice(0, maxChars - 1) + '…';
+          ctx.fillText(lbl, n.x + n.w / 2, n.y + n.h / 2);
+        }
+
+        ctx.restore();
       }
-      
+
       ctx.restore();
-    }
-
-    function drawArrowHead(ctx, x1, y1, x2, y2, radius) {
-      const dx = x2 - x1;
-      const dy = y2 - y1;
-      const angle = Math.atan2(dy, dx);
-      const len = 8 / transform.k;
-      const tx = x2 - Math.cos(angle) * radius;
-      const ty = y2 - Math.sin(angle) * radius;
-      
-      ctx.beginPath();
-      ctx.moveTo(tx, ty);
-      ctx.lineTo(tx - len * Math.cos(angle - Math.PI/6), ty - len * Math.sin(angle - Math.PI/6));
-      ctx.lineTo(tx - len * Math.cos(angle + Math.PI/6), ty - len * Math.sin(angle + Math.PI/6));
-      ctx.fillStyle = ctx.strokeStyle;
-      ctx.fill();
-    }
-
-    function isConnected(a, b) {
-      for(const e of graph.edges) {
-        if ((e.source === a && e.target === b) || (e.source === b && e.target === a)) return true;
-      }
-      return false;
     }
 
     function getPointerPos(e) {
@@ -1791,16 +2138,11 @@
     function onGraphMouseDown(e) {
       if (currentView !== 'graph') return;
       const p = getPointerPos(e);
-      let found = null;
-      for(let i=graph.nodes.length-1; i>=0; i--) {
-         const n = graph.nodes[i];
-         if (!isNodeVisible(n)) continue;
-         const dx=p.x-n.x, dy=p.y-n.y;
-         if(dx*dx+dy*dy < (n.radius+5/transform.k)*(n.radius+5/transform.k)) { found=n; break; }
-      }
-      
+      const found = nodeAtPoint(p.x, p.y);
+
       if (found) {
-        draggedNode = found;
+        selectedNode = found.id;
+        showDetail(found.nodeRef);
       } else {
         isDragging = true;
         dragStart = { x: e.clientX, y: e.clientY };
@@ -1810,44 +2152,26 @@
     function onGraphMouseMove(e) {
       if (currentView !== 'graph') return;
       const p = getPointerPos(e);
-      
-      if (draggedNode) {
-        draggedNode.x = p.x;
-        draggedNode.y = p.y;
-        drawGraph();
-      } else if (isDragging) {
+
+      if (isDragging) {
         transform.x += (e.clientX - dragStart.x);
         transform.y += (e.clientY - dragStart.y);
         dragStart = { x: e.clientX, y: e.clientY };
         drawGraph();
       } else {
-         let found = null;
-         for(let i=graph.nodes.length-1; i>=0; i--) {
-           const n = graph.nodes[i];
-           if (!isNodeVisible(n)) continue;
-           const dx=p.x-n.x, dy=p.y-n.y;
-           if(dx*dx+dy*dy < (n.radius+5/transform.k)*(n.radius+5/transform.k)) { found=n; break; }
-         }
-         
-         if (found !== hoveredNode) {
-           hoveredNode = found;
-           updateTooltip(e, found);
-           drawGraph();
-           canvas.style.cursor = found ? 'pointer' : 'grab';
-         } else if (found) {
-           updateTooltip(e, found);
-         }
+        const found = nodeAtPoint(p.x, p.y);
+        if (found !== hoveredNode) {
+          hoveredNode = found;
+          updateTooltip(e, found);
+          drawGraph();
+          canvas.style.cursor = found ? 'pointer' : 'grab';
+        } else if (found) {
+          updateTooltip(e, found);
+        }
       }
     }
 
     function onGraphMouseUp(e) {
-      if (draggedNode) {
-         if (draggedNode === hoveredNode) {
-            selectedNode = draggedNode.id;
-            showDetail(draggedNode.nodeRef);
-         }
-         draggedNode = null;
-      }
       isDragging = false;
     }
 
@@ -1869,7 +2193,7 @@
       const px = cx - rect.left - canvas.width/2 - transform.x;
       const py = cy - rect.top - canvas.height/2 - transform.y;
       
-      const newK = Math.max(0.1, Math.min(transform.k * factor, 5));
+      const newK = Math.max(0.05, Math.min(transform.k * factor, 8));
       const scaleChange = newK - transform.k;
       
       transform.x -= px * (scaleChange / transform.k);
@@ -1882,27 +2206,30 @@
     function fitGraph() {
       if (graph.nodes.length === 0) return;
       let minX = Infinity, maxX = -Infinity, minY = Infinity, maxY = -Infinity;
-      for(const n of graph.nodes) {
-        if (n.x < minX) minX = n.x;
-        if (n.x > maxX) maxX = n.x;
-        if (n.y < minY) minY = n.y;
-        if (n.y > maxY) maxY = n.y;
-      }
-      
+      const useAll = (arr) => {
+        for (const n of arr) {
+          if (n.x < minX) minX = n.x;
+          if (n.x + n.w > maxX) maxX = n.x + n.w;
+          if (n.y < minY) minY = n.y;
+          if (n.y + n.h > maxY) maxY = n.y + n.h;
+        }
+      };
+      const vis = graph.nodes.filter(n => isNodeVisible(n));
+      useAll(vis.length > 0 ? vis : graph.nodes);
+
       const width = Math.max(maxX - minX, 100);
       const height = Math.max(maxY - minY, 100);
-      
-      // Calculate center of graph bounding box
-      const cx = (minX + maxX)/2;
-      const cy = (minY + maxY)/2;
-      
+      const cx = (minX + maxX) / 2;
+      const cy = (minY + maxY) / 2;
+
       transform.x = -cx;
       transform.y = -cy;
-      
-      const scaleX = canvas.width / (width + 100);
-      const scaleY = canvas.height / (height + 100);
-      transform.k = Math.max(0.2, Math.min(scaleX, scaleY, 1.5));
-      
+
+      const pad = 120;
+      const scaleX = canvas.width / (width + pad);
+      const scaleY = canvas.height / (height + pad);
+      transform.k = Math.max(0.05, Math.min(scaleX, scaleY, 2));
+
       drawGraph();
     }
 
@@ -1912,14 +2239,45 @@
         tooltip.style.display = 'none';
         return;
       }
-      
-      tooltip.innerHTML = '<strong>' + escapeHtml(node.label) + '</strong><br>' +
-      '<span style="color:var(--text-muted)">' + (node.isExternal ? 'External Package' : 'Local File') + '</span><br>' +
-      'Imports: ' + node.imports.length;
-      
+
+      const isDeadCode = !node.isExternal && node.nodeRef && node.nodeRef.isDeadCode;
+      const importedByCount = node.nodeRef && node.nodeRef.importedBy ? node.nodeRef.importedBy.length : 0;
+
+      tooltip.innerHTML = '<strong>' + (isDeadCode ? '  ' : '') + escapeHtml(node.label) + '</strong><br>' +
+        '<span style="color:var(--text-muted)">' + (node.isExternal ? 'External Package' : 'Local File') + '</span><br>' +
+        'Imports: ' + node.imports.length +
+        (importedByCount > 0 ? '<br>Imported by: ' + importedByCount + ' files' : '') +
+        (isDeadCode ? '<br><span style="color:#ef4444;font-weight:600;">  Dead Code</span>' : '');
+
       tooltip.style.display = 'block';
       tooltip.style.left = (e.clientX - canvas.getBoundingClientRect().left + 15) + 'px';
       tooltip.style.top = (e.clientY - canvas.getBoundingClientRect().top + 15) + 'px';
+    }
+
+    function selectDeadCodeFile(filePath) {
+      const parts = filePath.split('/');
+      for (let i = 1; i < parts.length; i++) {
+        expandedNodes.add(parts.slice(0, i).join('/'));
+      }
+      expandedNodes.add('');
+      function findNode(node, p) {
+        if (node.path === p) return node;
+        if (node.children) {
+          for (const c of node.children) { const r = findNode(c, p); if (r) return r; }
+        }
+        return null;
+      }
+      const found = findNode(DATA.root, filePath);
+      if (found) {
+        selectedNode = found.path;
+        showDetail(found);
+        if (currentView !== 'tree') setView('tree');
+        renderTree();
+        setTimeout(() => {
+          const rows = document.querySelectorAll('.tree-node-row.selected');
+          if (rows.length) rows[0].scrollIntoView({ behavior: 'smooth', block: 'center' });
+        }, 150);
+      }
     }
 
     // ─── Start ───

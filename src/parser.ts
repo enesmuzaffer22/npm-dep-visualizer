@@ -66,3 +66,31 @@ export function parseImports(filePath: string): ImportInfo[] {
 
   return imports;
 }
+
+/**
+ * Check whether a file has any export statements (ES or CommonJS).
+ * Used to distinguish dead code (no imports AND no exports) from entry points.
+ */
+export function hasExports(filePath: string): boolean {
+  let content: string;
+  try {
+    content = fs.readFileSync(filePath, 'utf-8');
+  } catch {
+    return false;
+  }
+
+  const noSingleLineComments = content.replace(/\/\/.*$/gm, '');
+  const noComments = noSingleLineComments.replace(/\/\*[\s\S]*?\*\//g, '');
+
+  // ES export: export default / export const|let|var|function|class|type|interface|enum / export { / export *
+  if (/\bexport\s+(default|const|let|var|function|class|type|interface|enum|abstract|\{|\*)/m.test(noComments)) {
+    return true;
+  }
+
+  // CommonJS: module.exports = ... or exports.xxx = ...
+  if (/\bmodule\.exports\s*=|\bexports\.\w+\s*=/m.test(noComments)) {
+    return true;
+  }
+
+  return false;
+}

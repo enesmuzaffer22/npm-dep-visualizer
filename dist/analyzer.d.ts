@@ -5,6 +5,7 @@ export interface FileNode {
     importedBy: string[];
     size: number;
     isOrphan: boolean;
+    isDeadCode: boolean;
 }
 export interface DependencyEdge {
     source: string;
@@ -29,6 +30,7 @@ export interface AnalysisResult {
         totalExternalImports: number;
         totalSize: number;
         orphanCount: number;
+        deadCodeCount: number;
         circularDependencies: string[][];
         hotspots: Array<{
             path: string;

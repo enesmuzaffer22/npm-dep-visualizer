@@ -34,6 +34,7 @@ var __importStar = (this && this.__importStar) || (function () {
 })();
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.parseImports = parseImports;
+exports.hasExports = hasExports;
 const fs = __importStar(require("fs"));
 /**
  * Parse a JavaScript/TypeScript file and extract all import/require statements.
@@ -87,5 +88,29 @@ function parseImports(filePath) {
         addImport(match[1], 're-export');
     }
     return imports;
+}
+/**
+ * Check whether a file has any export statements (ES or CommonJS).
+ * Used to distinguish dead code (no imports AND no exports) from entry points.
+ */
+function hasExports(filePath) {
+    let content;
+    try {
+        content = fs.readFileSync(filePath, 'utf-8');
+    }
+    catch {
+        return false;
+    }
+    const noSingleLineComments = content.replace(/\/\/.*$/gm, '');
+    const noComments = noSingleLineComments.replace(/\/\*[\s\S]*?\*\//g, '');
+    // ES export: export default / export const|let|var|function|class|type|interface|enum / export { / export *
+    if (/\bexport\s+(default|const|let|var|function|class|type|interface|enum|abstract|\{|\*)/m.test(noComments)) {
+        return true;
+    }
+    // CommonJS: module.exports = ... or exports.xxx = ...
+    if (/\bmodule\.exports\s*=|\bexports\.\w+\s*=/m.test(noComments)) {
+        return true;
+    }
+    return false;
 }
 //# sourceMappingURL=parser.js.map

@@ -1,7 +1,7 @@
 import * as path from 'path';
 import * as fs from 'fs';
 import { globSync } from 'glob';
-import { parseImports } from './parser';
+import { parseImports, hasExports } from './parser';
 import { resolveImport, isExternalImport, readPathAliases, PathAliasConfig } from './resolver';
 
 export interface FileNode {
@@ -11,6 +11,7 @@ export interface FileNode {
   importedBy: string[]; // Files that import this file
   size: number;         // File size in bytes
   isOrphan: boolean;    // True if not imported by any file
+  isDeadCode: boolean;  // True if orphan AND has no exports
 }
 
 export interface DependencyEdge {
@@ -36,8 +37,9 @@ export interface AnalysisResult {
     totalExternalPackages: number;
     totalLocalImports: number;
     totalExternalImports: number;
-    totalSize: number;    // Total size of all local files in bytes
-    orphanCount: number;  // Total number of orphan files
+    totalSize: number;
+    orphanCount: number;
+    deadCodeCount: number; // Files that are orphaned AND have no exports
     circularDependencies: string[][];
     hotspots: Array<{ path: string; importedByCount: number }>;
   };
@@ -181,6 +183,7 @@ export function analyze(options: AnalyzerOptions): AnalysisResult {
       importedBy: [],
       size: fileSize,
       isOrphan: false,
+      isDeadCode: false,
     });
   }
 
@@ -197,12 +200,17 @@ export function analyze(options: AnalyzerOptions): AnalysisResult {
     }
   }
 
-  // Phase 3: Detect orphans
+  // Phase 3: Detect orphans and dead code
   let orphanCount = 0;
-  for (const [, node] of fileNodes) {
+  let deadCodeCount = 0;
+  for (const [filePath, node] of fileNodes) {
     if (node.importedBy.length === 0 && fileNodes.size > 1) {
       node.isOrphan = true;
       orphanCount++;
+      if (!hasExports(filePath)) {
+        node.isDeadCode = true;
+        deadCodeCount++;
+      }
     }
   }
 
@@ -228,6 +236,7 @@ export function analyze(options: AnalyzerOptions): AnalysisResult {
       totalExternalImports,
       totalSize,
       orphanCount,
+      deadCodeCount,
       circularDependencies: circularDeps,
       hotspots,
     },
