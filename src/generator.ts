@@ -1,5 +1,27 @@
 import { AnalysisResult, FileNode, ExternalPackage } from './analyzer';
 import * as path from 'path';
+import * as fs from 'fs';
+
+/**
+ * Load PNG icons from assets directory and convert to base64 data URIs.
+ */
+function loadIcons(): Record<string, string> {
+  const assetsDir = path.resolve(__dirname, '..', 'assets');
+  const icons: Record<string, string> = {};
+  const iconFiles = ['folder', 'open-folder', 'package', 'search', 'mouse', 'file'];
+
+  for (const name of iconFiles) {
+    const filePath = path.join(assetsDir, `${name}.png`);
+    try {
+      const data = fs.readFileSync(filePath);
+      icons[name] = `data:image/png;base64,${data.toString('base64')}`;
+    } catch {
+      icons[name] = '';
+    }
+  }
+
+  return icons;
+}
 
 /**
  * Convert the analysis result to a JSON-serializable tree structure for the HTML visualization.
@@ -66,7 +88,7 @@ function buildTreeData(result: AnalysisResult) {
 
   // Add external packages node
   const externalNode: TreeNode = {
-    name: '📦 External Packages',
+    name: 'External Packages',
     path: '__external__',
     type: 'directory',
     children: Array.from(externalPackages.values())
@@ -90,6 +112,7 @@ function buildTreeData(result: AnalysisResult) {
 export function generateHTML(result: AnalysisResult): string {
   const { root, externalNode } = buildTreeData(result);
   const dataJSON = JSON.stringify({ root, externalNode, stats: result.stats });
+  const icons = loadIcons();
 
   return `<!DOCTYPE html>
 <html lang="en">
@@ -623,9 +646,35 @@ export function generateHTML(result: AnalysisResult): string {
 
     .tree-icon {
       flex-shrink: 0;
-      font-size: 15px;
       width: 20px;
-      text-align: center;
+      height: 20px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+    }
+
+    .tree-icon img {
+      width: 18px;
+      height: 18px;
+      object-fit: contain;
+    }
+
+    .icon-img {
+      width: 18px;
+      height: 18px;
+      object-fit: contain;
+      vertical-align: middle;
+    }
+
+    .icon-img.inline {
+      width: 14px;
+      height: 14px;
+      margin-right: 2px;
+    }
+
+    .detail-empty .icon img {
+      width: 48px;
+      height: 48px;
     }
 
     .tree-label {
@@ -703,7 +752,7 @@ export function generateHTML(result: AnalysisResult): string {
   <header class="header">
     <div class="header-content">
       <div class="header-title">
-        <div class="logo">🔍</div>
+        <div class="logo"><img src="${icons['search']}" alt="search" style="width:24px;height:24px;"></div>
         <div>
           <h1><span>Dep Visualizer</span></h1>
           <div class="project-name" id="projectName"></div>
@@ -711,9 +760,7 @@ export function generateHTML(result: AnalysisResult): string {
       </div>
 
       <div class="search-container">
-        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-          <circle cx="11" cy="11" r="8"/><path d="m21 21-4.3-4.3"/>
-        </svg>
+        <img src="${icons['search']}" alt="search" style="position:absolute;left:14px;top:50%;transform:translateY(-50%);width:16px;height:16px;pointer-events:none;">
         <input type="text" class="search-input" id="searchInput" placeholder="Search files and packages..." />
         <span class="search-results-count" id="searchResultsCount"></span>
       </div>
@@ -723,10 +770,10 @@ export function generateHTML(result: AnalysisResult): string {
           All <span class="count" id="countAll"></span>
         </button>
         <button class="filter-btn" data-filter="local" id="filterLocal">
-          📄 Local <span class="count" id="countLocal"></span>
+           <img src="${icons['folder']}" class="icon-img inline" alt="local"> Local <span class="count" id="countLocal"></span>
         </button>
-        <button class="filter-btn" data-filter="external" id="filterExternal">
-          📦 External <span class="count" id="countExternal"></span>
+         <button class="filter-btn" data-filter="external" id="filterExternal">
+           <img src="${icons['package']}" class="icon-img inline" alt="package"> External <span class="count" id="countExternal"></span>
         </button>
       </div>
     </div>
@@ -737,7 +784,7 @@ export function generateHTML(result: AnalysisResult): string {
     <!-- Tree Panel -->
     <div class="tree-panel">
       <div class="tree-panel-header">
-        <h2>📂 Dependency Tree</h2>
+         <h2><img src="${icons['open-folder']}" class="icon-img" alt="tree" style="width:20px;height:20px;margin-right:6px;"> Dependency Tree</h2>
         <div class="tree-actions">
           <button class="tree-action-btn" id="expandAllBtn">Expand All</button>
           <button class="tree-action-btn" id="collapseAllBtn">Collapse All</button>
@@ -771,13 +818,13 @@ export function generateHTML(result: AnalysisResult): string {
       <!-- Detail Panel -->
       <div class="detail-panel">
         <div class="detail-panel-header">
-          <span>📋</span>
+           <span><img src="${icons['folder']}" class="icon-img" alt="details"></span>
           <h3 id="detailTitle">File Details</h3>
         </div>
         <div class="detail-panel-content" id="detailContent">
-          <div class="detail-empty">
-            <div class="icon">🖱️</div>
-            <div>Click a file in the tree to view its dependencies</div>
+           <div class="detail-empty">
+             <div class="icon"><img src="${icons['mouse']}" alt="click"></div>
+             <div>Click a file in the tree to view its dependencies</div>
           </div>
         </div>
       </div>
@@ -795,6 +842,16 @@ export function generateHTML(result: AnalysisResult): string {
   <script>
     // ─── Data ───
     const DATA = ${dataJSON};
+
+    // ─── Icon Data URIs ───
+    const ICONS = {
+      folder: '${icons['folder']}',
+      openFolder: '${icons['open-folder']}',
+      package: '${icons['package']}',
+      search: '${icons['search']}',
+      mouse: '${icons['mouse']}',
+      file: '${icons['file']}',
+    };
 
     // ─── State ───
     let currentFilter = 'all';
@@ -902,7 +959,7 @@ export function generateHTML(result: AnalysisResult): string {
       // Icon
       const icon = document.createElement('span');
       icon.className = 'tree-icon';
-      icon.textContent = getNodeIcon(node);
+      icon.innerHTML = getNodeIcon(node);
       row.appendChild(icon);
 
       // Label
@@ -970,18 +1027,15 @@ export function generateHTML(result: AnalysisResult): string {
     }
 
     function getNodeIcon(node) {
-      if (node.type === 'external') return '📦';
+      if (node.type === 'external') return '<img src="' + ICONS.package + '" class="icon-img" alt="pkg">';
       if (node.type === 'directory') {
-        if (node.path === '__external__') return '📦';
-        return expandedNodes.has(node.path) ? '📂' : '📁';
+        if (node.path === '__external__') return '<img src="' + ICONS.package + '" class="icon-img" alt="pkg">';
+        return expandedNodes.has(node.path)
+          ? '<img src="' + ICONS.openFolder + '" class="icon-img" alt="dir">'
+          : '<img src="' + ICONS.folder + '" class="icon-img" alt="dir">';
       }
-      const ext = node.name.split('.').pop()?.toLowerCase() || '';
-      const icons = {
-        'ts': '🟦', 'tsx': '⚛️', 'js': '🟨', 'jsx': '⚛️',
-        'vue': '💚', 'svelte': '🧡', 'css': '🎨', 'scss': '🎨',
-        'json': '📋', 'mjs': '🟨', 'mts': '🟦',
-      };
-      return icons[ext] || '📄';
+      // For files, use file icon
+      return '<img src="' + ICONS.file + '" class="icon-img" alt="file">';
     }
 
     function matchesQuery(node) {
@@ -1013,7 +1067,7 @@ export function generateHTML(result: AnalysisResult): string {
         const externalImports = node.imports.filter(i => i.isExternal);
 
         if (localImports.length > 0) {
-          html += '<div class="detail-section"><h4>📄 Local Imports (' + localImports.length + ')</h4>';
+          html += '<div class="detail-section"><h4><img src="' + ICONS.folder + '" class="icon-img inline" alt="local"> Local Imports (' + localImports.length + ')</h4>';
           for (const imp of localImports) {
             html += '<div class="detail-item">' +
               '<span class="dot local"></span>' +
@@ -1025,7 +1079,7 @@ export function generateHTML(result: AnalysisResult): string {
         }
 
         if (externalImports.length > 0) {
-          html += '<div class="detail-section"><h4>📦 External Imports (' + externalImports.length + ')</h4>';
+          html += '<div class="detail-section"><h4><img src="' + ICONS.package + '" class="icon-img inline" alt="pkg"> External Imports (' + externalImports.length + ')</h4>';
           for (const imp of externalImports) {
             html += '<div class="detail-item">' +
               '<span class="dot external"></span>' +
@@ -1037,12 +1091,12 @@ export function generateHTML(result: AnalysisResult): string {
         }
 
         if (node.imports.length === 0) {
-          html += '<div class="detail-empty"><div class="icon">✨</div><div>No imports — standalone file</div></div>';
+          html += '<div class="detail-empty"><div class="icon"><img src="' + ICONS.search + '" class="icon-img" style="width:36px;height:36px;" alt="empty"></div><div>No imports — standalone file</div></div>';
         }
       }
 
       if (node.importedBy && node.importedBy.length > 0) {
-        html += '<div class="detail-section"><h4>🔗 Imported By (' + node.importedBy.length + ')</h4>';
+        html += '<div class="detail-section"><h4>↩ Imported By (' + node.importedBy.length + ')</h4>';
         for (const by of node.importedBy) {
           html += '<div class="detail-item">' +
             '<span class="dot reverse"></span>' +
@@ -1051,12 +1105,12 @@ export function generateHTML(result: AnalysisResult): string {
         }
         html += '</div>';
       } else if (node.type === 'file') {
-        html += '<div class="detail-section"><h4>🔗 Imported By</h4>' +
+        html += '<div class="detail-section"><h4>↩ Imported By</h4>' +
           '<div class="detail-item" style="color: var(--text-muted);">Not imported by any file</div></div>';
       }
 
       if (node.type === 'external' && node.importedBy) {
-        html += '<div class="detail-section"><h4>📄 Used By Files (' + node.importedBy.length + ')</h4>';
+        html += '<div class="detail-section"><h4><img src="' + ICONS.folder + '" class="icon-img inline" alt="files"> Used By Files (' + node.importedBy.length + ')</h4>';
         for (const by of node.importedBy) {
           html += '<div class="detail-item">' +
             '<span class="dot reverse"></span>' +
@@ -1066,7 +1120,7 @@ export function generateHTML(result: AnalysisResult): string {
         html += '</div>';
       }
 
-      content.innerHTML = html || '<div class="detail-empty"><div class="icon">📋</div><div>No details available</div></div>';
+      content.innerHTML = html || '<div class="detail-empty"><div class="icon"><img src="' + ICONS.folder + '" class="icon-img" style="width:36px;height:36px;" alt="empty"></div><div>No details available</div></div>';
     }
 
     function escapeHtml(text) {
