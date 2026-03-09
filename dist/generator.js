@@ -135,32 +135,63 @@ function generateHTML(result) {
     @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap');
 
     :root {
-      --bg-primary: #0f0f17;
-      --bg-secondary: #181825;
-      --bg-tertiary: #1e1e2e;
-      --bg-surface: #252538;
-      --bg-hover: #2a2a40;
-      --border-color: #313149;
-      --border-accent: #45457a;
-      --text-primary: #e2e2f0;
-      --text-secondary: #a0a0bc;
-      --text-muted: #6c6c8a;
-      --accent-blue: #7aa2f7;
-      --accent-purple: #bb9af7;
-      --accent-green: #9ece6a;
-      --accent-orange: #e0af68;
-      --accent-red: #f7768e;
-      --accent-cyan: #73daca;
-      --accent-pink: #ff79c6;
-      --gradient-1: linear-gradient(135deg, #7aa2f7, #bb9af7);
-      --gradient-2: linear-gradient(135deg, #9ece6a, #73daca);
-      --gradient-3: linear-gradient(135deg, #e0af68, #f7768e);
-      --shadow-sm: 0 1px 3px rgba(0,0,0,0.3);
-      --shadow-md: 0 4px 14px rgba(0,0,0,0.4);
-      --shadow-lg: 0 10px 40px rgba(0,0,0,0.5);
+      /* Light Theme (Default) */
+      --bg-primary: #ffffff;
+      --bg-secondary: #f4f4f5;
+      --bg-tertiary: #e4e4e7;
+      --bg-surface: #ffffff;
+      --bg-hover: #e4e4e7;
+      --border-color: #d4d4d8;
+      --border-accent: #a1a1aa;
+      --text-primary: #18181b;
+      --text-secondary: #3f3f46;
+      --text-muted: #71717a;
+      
+      --accent-blue: #000000;
+      --accent-purple: #3f3f46;
+      --accent-green: #18181b;
+      --accent-orange: #52525b;
+      --accent-red: #000000;
+      --accent-cyan: #3f3f46;
+      --accent-pink: #18181b;
+      
+      --gradient-1: linear-gradient(135deg, #000000, #3f3f46);
+      --gradient-2: linear-gradient(135deg, #000000, #52525b);
+      --shadow-sm: 0 1px 2px rgba(0,0,0,0.05);
+      --shadow-md: 0 4px 6px rgba(0,0,0,0.1);
+      --shadow-lg: 0 10px 15px rgba(0,0,0,0.1);
+      
       --radius-sm: 6px;
       --radius-md: 10px;
       --radius-lg: 16px;
+    }
+
+    /* Dark Theme */
+    [data-theme='dark'] {
+      --bg-primary: #09090b;
+      --bg-secondary: #000000;
+      --bg-tertiary: #18181b;
+      --bg-surface: #09090b;
+      --bg-hover: #27272a;
+      --border-color: #27272a;
+      --border-accent: #3f3f46;
+      --text-primary: #fafafa;
+      --text-secondary: #d4d4d8;
+      --text-muted: #a1a1aa;
+      
+      --accent-blue: #ffffff;
+      --accent-purple: #d4d4d8;
+      --accent-green: #fafafa;
+      --accent-orange: #a1a1aa;
+      --accent-red: #ffffff;
+      --accent-cyan: #d4d4d8;
+      --accent-pink: #fafafa;
+      
+      --gradient-1: linear-gradient(135deg, #ffffff, #d4d4d8);
+      --gradient-2: linear-gradient(135deg, #ffffff, #a1a1aa);
+      --shadow-sm: 0 1px 3px rgba(0,0,0,0.3);
+      --shadow-md: 0 4px 14px rgba(0,0,0,0.4);
+      --shadow-lg: 0 10px 40px rgba(0,0,0,0.5);
     }
 
     * {
@@ -193,8 +224,20 @@ function generateHTML(result) {
       display: flex;
       align-items: center;
       justify-content: space-between;
-      flex-wrap: wrap;
       gap: 16px;
+    }
+
+    .header-left {
+      display: flex;
+      align-items: center;
+      gap: 24px;
+      flex: 1;
+    }
+
+    .header-right {
+      display: flex;
+      align-items: center;
+      gap: 12px;
     }
 
     .header-title {
@@ -206,26 +249,45 @@ function generateHTML(result) {
     .header-title .logo {
       width: 40px;
       height: 40px;
-      background: var(--gradient-1);
+      background: var(--bg-tertiary);
+      border: 1px solid var(--border-color);
       border-radius: var(--radius-md);
       display: flex;
       align-items: center;
       justify-content: center;
       font-size: 20px;
-      box-shadow: 0 4px 14px rgba(122,162,247,0.25);
+      color: var(--text-primary);
     }
 
     .header-title h1 {
       font-size: 20px;
       font-weight: 600;
       letter-spacing: -0.02em;
+      color: var(--text-primary);
     }
 
-    .header-title h1 span {
-      background: var(--gradient-1);
-      -webkit-background-clip: text;
-      -webkit-text-fill-color: transparent;
-      background-clip: text;
+    .theme-toggle-btn {
+      background: var(--bg-tertiary);
+      border: 1px solid var(--border-color);
+      color: var(--text-primary);
+      width: 36px;
+      height: 36px;
+      border-radius: var(--radius-md);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      cursor: pointer;
+      transition: all 0.2s;
+      padding: 0;
+    }
+    .theme-toggle-btn svg {
+      width: 18px;
+      height: 18px;
+      display: block;
+    }
+    .theme-toggle-btn:hover {
+      background: var(--bg-hover);
+      border-color: var(--border-accent);
     }
 
     .header-title .project-name {
@@ -239,8 +301,8 @@ function generateHTML(result) {
     .search-container {
       position: relative;
       flex: 1;
-      max-width: 420px;
-      min-width: 240px;
+      max-width: 320px;
+      min-width: 200px;
     }
 
     .search-container svg {
@@ -273,7 +335,7 @@ function generateHTML(result) {
 
     .search-input:focus {
       border-color: var(--accent-blue);
-      box-shadow: 0 0 0 3px rgba(122,162,247,0.15);
+      box-shadow: 0 0 0 3px var(--bg-tertiary);
     }
 
     .search-results-count {
@@ -314,9 +376,9 @@ function generateHTML(result) {
     }
 
     .filter-btn.active {
-      background: rgba(122,162,247,0.12);
-      border-color: var(--accent-blue);
-      color: var(--accent-blue);
+      background: var(--text-primary);
+      border-color: var(--text-primary);
+      color: var(--bg-primary);
     }
 
     .filter-btn .count {
@@ -328,7 +390,8 @@ function generateHTML(result) {
     }
 
     .filter-btn.active .count {
-      background: rgba(122,162,247,0.15);
+      background: var(--bg-secondary);
+      color: var(--text-primary);
     }
 
     /* ─── Layout ─── */
@@ -523,19 +586,18 @@ function generateHTML(result) {
     /* ─── Circular Dependencies ─── */
     .circular-panel {
       background: var(--bg-secondary);
-      border: 1px solid rgba(247,118,142,0.25);
+      border: 1px solid var(--border-color);
       border-radius: var(--radius-md);
       overflow: hidden;
     }
 
     .circular-panel-header {
       padding: 14px 20px;
-      border-bottom: 1px solid rgba(247,118,142,0.15);
+      border-bottom: 1px solid var(--border-color);
       display: flex;
       align-items: center;
       gap: 8px;
-      color: var(--accent-red);
-      font-size: 13px;
+      color: var(--text-primary);
       font-weight: 600;
     }
 
@@ -645,12 +707,11 @@ function generateHTML(result) {
     }
 
     .tree-node-row.selected {
-      background: rgba(122,162,247,0.1);
-      border-left: 2px solid var(--accent-blue);
+      background: var(--bg-tertiary);
     }
 
     .tree-node-row.highlight {
-      background: rgba(158,206,106,0.1);
+      background: var(--bg-tertiary);
     }
 
     .tree-node-row.hidden {
@@ -731,13 +792,13 @@ function generateHTML(result) {
     }
 
     .tree-badge.import-count {
-      background: rgba(122,162,247,0.1);
-      color: var(--accent-blue);
+      background: var(--bg-tertiary);
+      color: var(--text-primary);
     }
 
     .tree-badge.usage-count {
-      background: rgba(115,218,202,0.1);
-      color: var(--accent-cyan);
+      background: var(--bg-tertiary);
+      color: var(--text-secondary);
     }
 
     .tree-children {
@@ -749,9 +810,10 @@ function generateHTML(result) {
     }
 
     .search-match .tree-label {
-      background: rgba(224,175,104,0.2);
+      background: var(--bg-tertiary);
       padding: 0 3px;
       border-radius: 3px;
+      font-weight: bold;
     }
 
     /* ─── View Toggle ─── */
@@ -784,8 +846,8 @@ function generateHTML(result) {
     }
 
     .view-toggle-btn.active {
-      background: rgba(122,162,247,0.15);
-      color: var(--accent-blue);
+      background: var(--text-primary);
+      color: var(--bg-primary);
     }
 
     /* ─── Graph Panel ─── */
@@ -941,32 +1003,40 @@ function generateHTML(result) {
   </style>
 </head>
 <body>
-  <!-- Header -->
   <header class="header">
     <div class="header-content">
-      <div class="header-title">
-        <div class="logo"><img src="${icons['search']}" alt="search" style="width:24px;height:24px;"></div>
-        <div>
-          <h1><span>Dep Visualizer</span></h1>
-          <div class="project-name" id="projectName"></div>
+      <div class="header-left">
+        <div class="header-title">
+          <div>
+            <h1><span>Dep Visualizer</span></h1>
+            <div class="project-name" id="projectName"></div>
+          </div>
+        </div>
+
+        <div class="search-container">
+          <img src="${icons['search']}" alt="search" style="position:absolute;left:14px;top:50%;transform:translateY(-50%);width:16px;height:16px;pointer-events:none; filter: grayscale(100%);">
+          <input type="text" class="search-input" id="searchInput" placeholder="Search files and packages..." />
+          <span class="search-results-count" id="searchResultsCount"></span>
         </div>
       </div>
 
-      <div class="search-container">
-        <img src="${icons['search']}" alt="search" style="position:absolute;left:14px;top:50%;transform:translateY(-50%);width:16px;height:16px;pointer-events:none;">
-        <input type="text" class="search-input" id="searchInput" placeholder="Search files and packages..." />
-        <span class="search-results-count" id="searchResultsCount"></span>
-      </div>
-
-      <div class="filter-group">
-        <button class="filter-btn active" data-filter="all" id="filterAll">
-          All <span class="count" id="countAll"></span>
-        </button>
-        <button class="filter-btn" data-filter="local" id="filterLocal">
-           <img src="${icons['folder']}" class="icon-img inline" alt="local"> Local <span class="count" id="countLocal"></span>
-        </button>
-         <button class="filter-btn" data-filter="external" id="filterExternal">
-           <img src="${icons['package']}" class="icon-img inline" alt="package"> External <span class="count" id="countExternal"></span>
+      <div class="header-right">
+        <div class="filter-group">
+          <button class="filter-btn active" data-filter="all" id="filterAll">
+            All <span class="count" id="countAll"></span>
+          </button>
+          <button class="filter-btn" data-filter="local" id="filterLocal">
+             <img src="${icons['folder']}" class="icon-img inline" alt="local"> Local <span class="count" id="countLocal"></span>
+          </button>
+           <button class="filter-btn" data-filter="external" id="filterExternal">
+             <img src="${icons['package']}" class="icon-img inline" alt="package" style="filter: grayscale(100%);"> External <span class="count" id="countExternal"></span>
+          </button>
+        </div>
+        
+        <button class="theme-toggle-btn" id="themeToggleBtn" title="Toggle Theme">
+          <span id="themeIcon" style="display:flex; align-items:center; justify-content:center;">
+            <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3a6 6 0 0 0 9 9 9 9 0 1 1-9-9Z"/></svg>
+          </span>
         </button>
       </div>
     </div>
@@ -978,8 +1048,8 @@ function generateHTML(result) {
     <div class="main-column">
       <div style="display: flex; align-items: center; gap: 12px; margin-bottom: 16px; flex-shrink: 0;">
         <div class="view-toggle">
-          <button class="view-toggle-btn active" id="viewTreeBtn">📋 Tree View</button>
-          <button class="view-toggle-btn" id="viewGraphBtn">🔀 Graph View</button>
+          <button class="view-toggle-btn active" id="viewTreeBtn">Tree View</button>
+          <button class="view-toggle-btn" id="viewGraphBtn">Graph View</button>
         </div>
       </div>
 
@@ -1135,6 +1205,25 @@ function generateHTML(result) {
       document.getElementById('expandAllBtn').addEventListener('click', expandAll);
       document.getElementById('collapseAllBtn').addEventListener('click', collapseAll);
 
+      // Theme Toggle logic
+      const themeBtn = document.getElementById('themeToggleBtn');
+      const themeIcon = document.getElementById('themeIcon');
+      const moonIcon = '<svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3a6 6 0 0 0 9 9 9 9 0 1 1-9-9Z"/></svg>';
+      const sunIcon = '<svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="4"/><path d="M12 2v2"/><path d="M12 20v2"/><path d="m4.93 4.93 1.41 1.41"/><path d="m17.66 17.66 1.41 1.41"/><path d="M2 12h2"/><path d="M20 12h2"/><path d="m6.34 17.66-1.41 1.41"/><path d="m19.07 4.93-1.41 1.41"/></svg>';
+
+      function toggleTheme() {
+        const currentTheme = document.documentElement.getAttribute('data-theme') || 'light';
+        const newTheme = currentTheme === 'light' ? 'dark' : 'light';
+        document.documentElement.setAttribute('data-theme', newTheme);
+        themeIcon.innerHTML = newTheme === 'dark' ? sunIcon : moonIcon;
+        
+        // Retrigger graph render to update colors
+        if (graphInitialized && currentView === 'graph') {
+           drawGraph();
+        }
+      }
+      themeBtn.addEventListener('click', toggleTheme);
+
       // View Toggles
       document.getElementById('viewTreeBtn').addEventListener('click', () => setView('tree'));
       document.getElementById('viewGraphBtn').addEventListener('click', () => setView('graph'));
@@ -1231,7 +1320,7 @@ function generateHTML(result) {
       if (node.importCount !== undefined && node.importCount > 0) {
         const badge = document.createElement('span');
         badge.className = 'tree-badge import-count';
-        badge.textContent = node.importCount + ' imp';
+        badge.textContent = node.importCount + ' imports';
         badge.title = node.importCount + ' imports';
         row.appendChild(badge);
       }
@@ -1492,6 +1581,9 @@ function generateHTML(result) {
         const id = n.path;
         const cluster = isEx ? '__external__' : (id.substring(0, id.lastIndexOf('/')) || '/');
         
+        const nodeColor = getComputedStyle(document.documentElement).getPropertyValue('--text-secondary').trim() || '#3f3f46';
+        const extColor = getComputedStyle(document.documentElement).getPropertyValue('--text-primary').trim() || '#000';
+        
         const nodeObj = {
           id,
           label: n.name,
@@ -1503,7 +1595,7 @@ function generateHTML(result) {
           y: (Math.random()-0.5)*canvas.height,
           vx: 0, vy: 0,
           radius: isEx ? 8 : 6,
-          color: isEx ? '#e0af68' : '#7aa2f7',
+          color: isEx ? extColor : nodeColor,
           nodeRef: n
         };
         nodesMap.set(id, nodeObj);
@@ -1613,6 +1705,17 @@ function generateHTML(result) {
     }
 
     function drawGraph() {
+      const isDark = document.documentElement.getAttribute('data-theme') === 'dark';
+      const lineColor = getComputedStyle(document.documentElement).getPropertyValue('--border-color').trim();
+      const highlightColor = getComputedStyle(document.documentElement).getPropertyValue('--text-primary').trim();
+      const textColor = getComputedStyle(document.documentElement).getPropertyValue('--text-primary').trim();
+      
+      for (const n of graph.nodes) {
+         n.color = n.isExternal 
+           ? (getComputedStyle(document.documentElement).getPropertyValue('--text-primary').trim() || '#000')
+           : (getComputedStyle(document.documentElement).getPropertyValue('--text-muted').trim() || '#71717a');
+      }
+
       ctx.clearRect(0, 0, canvas.width, canvas.height);
       ctx.save();
       ctx.translate(canvas.width/2 + transform.x, canvas.height/2 + transform.y);
@@ -1623,9 +1726,9 @@ function generateHTML(result) {
         let isHighlight = false;
         if (hoveredNode && (e.source === hoveredNode || e.target === hoveredNode)) isHighlight = true;
         
-        ctx.strokeStyle = isHighlight ? '#bb9af7' : 'rgba(108, 108, 138, 0.3)';
+        ctx.strokeStyle = isHighlight ? highlightColor : lineColor;
         ctx.lineWidth = isHighlight ? 2 / transform.k : 1 / transform.k;
-        if (hoveredNode && !isHighlight) ctx.strokeStyle = 'rgba(108, 108, 138, 0.05)';
+        if (hoveredNode && !isHighlight) ctx.strokeStyle = isDark ? 'rgba(255,255,255,0.05)' : 'rgba(0,0,0,0.05)';
         
         ctx.beginPath();
         ctx.moveTo(e.source.x, e.source.y);
@@ -1649,7 +1752,7 @@ function generateHTML(result) {
         ctx.stroke();
         
         if (n === hoveredNode || transform.k > 1.2) {
-          ctx.fillStyle = '#e2e2f0';
+          ctx.fillStyle = textColor;
           ctx.font = (10/transform.k) + 'px "JetBrains Mono"';
           ctx.textAlign = 'center';
           ctx.textBaseline = 'top';
