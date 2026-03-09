@@ -14,9 +14,7 @@ A framework-agnostic dependency analyzer and visualizer for JavaScript and TypeS
 - **File tree view** — collapsible folder / file tree with inline stats
 - **Dead code detection** — files that are never imported and export nothing are flagged
 - **Orphan detection** — files that are never imported by any other file
-- **Circular dependency detection** — import cycles are reported in the stats panel
 - **External package breakdown** — all third-party packages listed with import counts
-- **Hotspot detection** — most-imported files highlighted
 - **Search** — real-time file search across both views
 - **Filters** — filter nodes to show only local files, external packages, orphans, or dead code
 - **Dark / Light theme** — persisted in `localStorage`
@@ -132,16 +130,6 @@ node_modules/   .git/   dist/   build/
 | Orphans | Files not imported by any other file |
 | Dead Code | Orphan files with no exports |
 
-### Development
-
-```bash
-# Watch mode
-npx tsc --watch
-
-# Run against a test project
-node dist/cli.js -d ./tests/TEST-PROJECT -o ./test-output.html
-```
-
 ### License
 
 MIT
@@ -158,9 +146,7 @@ JavaScript ve TypeScript projeleri için çerçeveden bağımsız bir bağımlı
 - **Dosya ağacı görünümü** — Açılıp kapanabilen klasör/dosya ağacı, her satırda özet istatistikler
 - **Ölü kod tespiti** — Hiçbir dosya tarafından import edilmeyen ve export'u olmayan dosyalar işaretlenir
 - **Yalnız (orphan) dosya tespiti** — Hiçbir dosya tarafından import edilmeyen dosyaları gösterir
-- **Döngüsel bağımlılık tespiti** — Döngüsel import zincirleri istatistik panelinde raporlanır
 - **Harici paket dökümü** — Tüm üçüncü taraf paketler kullanım sayısıyla listelenir
-- **Hotspot tespiti** — En çok import edilen dosyalar öne çıkarılır
 - **Arama** — Her iki görünümde anlık dosya/modül arama
 - **Filtreler** — Yalnızca yerel dosyalar, harici paketler, yalnız dosyalar veya ölü kodu göster
 - **Koyu / Açık tema** — `localStorage`'da kalıcı olarak saklanır
@@ -275,16 +261,6 @@ node_modules/   .git/   dist/   build/
 | Harici | Yalnızca üçüncü taraf paketler |
 | Yalnızlar | Hiçbir dosya tarafından import edilmeyenler |
 | Ölü Kod | Export'u olmayan yalnız dosyalar |
-
-### Geliştirme
-
-```bash
-# İzleme modu
-npx tsc --watch
-
-# Test projesiyle çalıştır
-node dist/cli.js -d ./tests/TEST-PROJECT -o ./test-output.html
-```
 
 ### Lisans
 
