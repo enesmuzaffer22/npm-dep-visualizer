@@ -1,6 +1,6 @@
 {
   "name": "dep-visualizer",
-  "version": "1.0.6",
+  "version": "1.0.9",
   "description": "Framework-agnostic dependency visualizer for JavaScript and TypeScript projects. Generates an interactive HTML report of your project's import/dependency tree.",
   "main": "./dist/index.js",
   "types": "./dist/index.d.ts",
@@ -30,11 +30,11 @@
   "license": "MIT",
   "repository": {
     "type": "git",
-    "url": "https://github.com/your-username/dep-visualizer.git"
+    "url": "https://github.com/enesmuzaffer22/npm-dep-visualizer.git"
   },
-  "homepage": "https://github.com/your-username/dep-visualizer#readme",
+  "homepage": "https://github.com/enesmuzaffer22/npm-dep-visualizer#readme",
   "bugs": {
-    "url": "https://github.com/your-username/dep-visualizer/issues"
+    "url": "https://github.com/enesmuzaffer22/npm-dep-visualizer/issues"
   },
   "engines": {
     "node": ">=18"
