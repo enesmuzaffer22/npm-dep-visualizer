@@ -1,6 +1,6 @@
 {
   "name": "dep-visualizer",
-  "version": "1.0.0",
+  "version": "1.0.1",
   "description": "Framework-agnostic dependency visualizer for JavaScript and TypeScript projects. Generates an interactive HTML report of your project's import/dependency tree.",
   "main": "./dist/index.js",
   "types": "./dist/index.d.ts",
