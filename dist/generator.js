@@ -1486,6 +1486,7 @@ function generateHTML(result) {
       }
 
       renderTree();
+      if (currentView === 'graph') drawGraph();
     }
 
     function countMatches(node) {
@@ -1504,6 +1505,7 @@ function generateHTML(result) {
       document.querySelectorAll('.filter-btn').forEach(btn => btn.classList.remove('active'));
       document.getElementById('filter' + filter.charAt(0).toUpperCase() + filter.slice(1)).classList.add('active');
       renderTree();
+      if (currentView === 'graph') drawGraph();
     }
 
     // ─── Expand/Collapse ───
@@ -1704,6 +1706,13 @@ function generateHTML(result) {
       }
     }
 
+    function isNodeVisible(n) {
+      if (currentFilter === 'local' && n.isExternal) return false;
+      if (currentFilter === 'external' && !n.isExternal) return false;
+      if (searchQuery && !n.label.toLowerCase().includes(searchQuery.toLowerCase())) return false;
+      return true;
+    }
+
     function drawGraph() {
       const isDark = document.documentElement.getAttribute('data-theme') === 'dark';
       const lineColor = getComputedStyle(document.documentElement).getPropertyValue('--border-color').trim();
@@ -1723,12 +1732,23 @@ function generateHTML(result) {
       
       ctx.lineWidth = 1;
       for(const e of graph.edges) {
+        const sourceVisible = isNodeVisible(e.source);
+        const targetVisible = isNodeVisible(e.target);
+        const edgeVisible = sourceVisible || targetVisible;
+        
+        if (!edgeVisible) continue; // Skip completely hidden edges
+        
         let isHighlight = false;
         if (hoveredNode && (e.source === hoveredNode || e.target === hoveredNode)) isHighlight = true;
         
         ctx.strokeStyle = isHighlight ? highlightColor : lineColor;
         ctx.lineWidth = isHighlight ? 2 / transform.k : 1 / transform.k;
-        if (hoveredNode && !isHighlight) ctx.strokeStyle = isDark ? 'rgba(255,255,255,0.05)' : 'rgba(0,0,0,0.05)';
+        
+        if (hoveredNode && !isHighlight) {
+          ctx.strokeStyle = isDark ? 'rgba(255,255,255,0.05)' : 'rgba(0,0,0,0.05)';
+        } else if (!sourceVisible || !targetVisible) {
+          ctx.strokeStyle = isDark ? 'rgba(255,255,255,0.1)' : 'rgba(0,0,0,0.1)';
+        }
         
         ctx.beginPath();
         ctx.moveTo(e.source.x, e.source.y);
@@ -1739,8 +1759,10 @@ function generateHTML(result) {
       }
       
       for(const n of graph.nodes) {
-        let opacity = 1;
-        if (hoveredNode && hoveredNode !== n && !isConnected(n, hoveredNode)) opacity = 0.2;
+        const visible = isNodeVisible(n);
+        let opacity = visible ? 1 : 0.05;
+        
+        if (visible && hoveredNode && hoveredNode !== n && !isConnected(n, hoveredNode)) opacity = 0.2;
         
         ctx.beginPath();
         ctx.arc(n.x, n.y, n.radius, 0, Math.PI*2);
@@ -1751,7 +1773,8 @@ function generateHTML(result) {
         ctx.lineWidth = 2 / transform.k;
         ctx.stroke();
         
-        if (n === hoveredNode || transform.k > 1.2) {
+        if ((n === hoveredNode || transform.k > 1.2) && visible) {
+          ctx.globalAlpha = visible ? 1 : 0.2;
           ctx.fillStyle = textColor;
           ctx.font = (10/transform.k) + 'px "JetBrains Mono"';
           ctx.textAlign = 'center';
@@ -1800,6 +1823,7 @@ function generateHTML(result) {
       let found = null;
       for(let i=graph.nodes.length-1; i>=0; i--) {
          const n = graph.nodes[i];
+         if (!isNodeVisible(n)) continue;
          const dx=p.x-n.x, dy=p.y-n.y;
          if(dx*dx+dy*dy < (n.radius+5/transform.k)*(n.radius+5/transform.k)) { found=n; break; }
       }
@@ -1829,6 +1853,7 @@ function generateHTML(result) {
          let found = null;
          for(let i=graph.nodes.length-1; i>=0; i--) {
            const n = graph.nodes[i];
+           if (!isNodeVisible(n)) continue;
            const dx=p.x-n.x, dy=p.y-n.y;
            if(dx*dx+dy*dy < (n.radius+5/transform.k)*(n.radius+5/transform.k)) { found=n; break; }
          }
