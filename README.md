@@ -1,5 +1,7 @@
 # dep-visualizer
 
+![# dep-visualizer](https://github.com/enesmuzaffer22/npm-dep-visualizer/blob/main/repo-assets/1.png?raw=true)
+
 > 🇬🇧 [English](#english) · 🇹🇷 [Türkçe](#türkçe)
 
 ---
