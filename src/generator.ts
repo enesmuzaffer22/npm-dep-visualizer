@@ -456,6 +456,7 @@ export function generateHTML(result: AnalysisResult): string {
       font-weight: 700;
       letter-spacing: -0.02em;
       margin-bottom: 4px;
+      color: var(--text-primary);
     }
 
     .stat-card .stat-label {
@@ -465,13 +466,6 @@ export function generateHTML(result: AnalysisResult): string {
       text-transform: uppercase;
       letter-spacing: 0.05em;
     }
-
-    .stat-card:nth-child(1) .stat-value { color: var(--accent-blue); }
-    .stat-card:nth-child(2) .stat-value { color: var(--accent-green); }
-    .stat-card:nth-child(3) .stat-value { color: var(--accent-purple); }
-    .stat-card:nth-child(4) .stat-value { color: var(--accent-orange); }
-    .stat-card:nth-child(5) .stat-value { color: var(--text-primary); }
-    .stat-card:nth-child(6) .stat-value { color: var(--accent-red); }
 
     /* ─── Detail Panel ─── */
     .detail-panel {
