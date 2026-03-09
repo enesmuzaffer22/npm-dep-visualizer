@@ -1,0 +1,36 @@
+{
+  "name": "dep-visualizer",
+  "version": "1.0.0",
+  "description": "Framework-agnostic dependency visualizer for JavaScript and TypeScript projects. Generates an interactive HTML report of your project's import/dependency tree.",
+  "main": "./dist/index.js",
+  "types": "./dist/index.d.ts",
+  "bin": {
+    "depviz": "./dist/cli.js"
+  },
+  "scripts": {
+    "build": "tsc",
+    "start": "node dist/cli.js",
+    "depviz": "node dist/cli.js",
+    "dev": "ts-node src/cli.ts"
+  },
+  "keywords": [
+    "dependency",
+    "visualizer",
+    "import",
+    "tree",
+    "graph",
+    "analyzer",
+    "typescript",
+    "javascript"
+  ],
+  "license": "MIT",
+  "dependencies": {
+    "commander": "^12.1.0",
+    "glob": "^11.0.0"
+  },
+  "devDependencies": {
+    "@types/node": "^22.0.0",
+    "typescript": "^5.6.0",
+    "ts-node": "^10.9.0"
+  }
+}
