@@ -460,7 +460,7 @@ export function generateHTML(result: AnalysisResult): string {
 
     .stat-card .stat-label {
       font-size: 12px;
-      color: var(--text-muted);
+      color: var(--text-primary);
       font-weight: 500;
       text-transform: uppercase;
       letter-spacing: 0.05em;

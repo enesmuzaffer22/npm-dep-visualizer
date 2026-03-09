@@ -7,11 +7,14 @@
   "bin": {
     "depviz": "./dist/cli.js"
   },
+  "files": [
+    "dist/",
+    "README.md",
+    "LICENSE"
+  ],
   "scripts": {
     "build": "tsc",
-    "start": "node dist/cli.js",
-    "depviz": "node dist/cli.js",
-    "dev": "ts-node src/cli.ts"
+    "prepublishOnly": "npm run build"
   },
   "keywords": [
     "dependency",
@@ -24,6 +27,17 @@
     "javascript"
   ],
   "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/your-username/dep-visualizer.git"
+  },
+  "homepage": "https://github.com/your-username/dep-visualizer#readme",
+  "bugs": {
+    "url": "https://github.com/your-username/dep-visualizer/issues"
+  },
+  "engines": {
+    "node": ">=18"
+  },
   "dependencies": {
     "commander": "^12.1.0",
     "glob": "^11.0.0"
