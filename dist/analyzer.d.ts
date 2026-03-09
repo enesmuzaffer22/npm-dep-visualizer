@@ -3,6 +3,8 @@ export interface FileNode {
     relativePath: string;
     imports: DependencyEdge[];
     importedBy: string[];
+    size: number;
+    isOrphan: boolean;
 }
 export interface DependencyEdge {
     source: string;
@@ -25,7 +27,13 @@ export interface AnalysisResult {
         totalExternalPackages: number;
         totalLocalImports: number;
         totalExternalImports: number;
+        totalSize: number;
+        orphanCount: number;
         circularDependencies: string[][];
+        hotspots: Array<{
+            path: string;
+            importedByCount: number;
+        }>;
     };
 }
 export interface AnalyzerOptions {

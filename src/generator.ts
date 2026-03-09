@@ -38,6 +38,8 @@ function buildTreeData(result: AnalysisResult) {
     imports?: { source: string; resolved: string | null; isExternal: boolean; type: string }[];
     importedBy?: string[];
     importCount?: number;
+    size?: number;
+    isOrphan?: boolean;
   }
 
   const root: TreeNode = {
@@ -74,6 +76,8 @@ function buildTreeData(result: AnalysisResult) {
           })),
           importedBy: fileNode.importedBy,
           importCount: fileNode.imports.length,
+          size: fileNode.size,
+          isOrphan: fileNode.isOrphan,
         });
       } else {
         let dir = current.children.find(c => c.name === part && c.type === 'directory');
@@ -369,6 +373,10 @@ export function generateHTML(result: AnalysisResult): string {
       border-color: var(--text-primary);
       color: var(--bg-primary);
     }
+    
+    .filter-btn.active img {
+      filter: invert(1) brightness(100) !important;
+    }
 
     .filter-btn .count {
       font-size: 11px;
@@ -460,6 +468,8 @@ export function generateHTML(result: AnalysisResult): string {
     .stat-card:nth-child(2) .stat-value { color: var(--accent-green); }
     .stat-card:nth-child(3) .stat-value { color: var(--accent-purple); }
     .stat-card:nth-child(4) .stat-value { color: var(--accent-orange); }
+    .stat-card:nth-child(5) .stat-value { color: var(--text-primary); }
+    .stat-card:nth-child(6) .stat-value { color: var(--accent-red); }
 
     /* ─── Detail Panel ─── */
     .detail-panel {
@@ -789,6 +799,19 @@ export function generateHTML(result: AnalysisResult): string {
       background: var(--bg-tertiary);
       color: var(--text-secondary);
     }
+    
+    .tree-badge.size {
+      background: transparent;
+      color: var(--text-muted);
+      border: 1px solid var(--border-color);
+    }
+    
+    .tree-badge.orphan {
+      background: rgba(0,0,0,0.05);
+      color: var(--text-primary);
+      border: 1px solid var(--text-primary);
+      font-weight: 500;
+    }
 
     .tree-children {
       overflow: hidden;
@@ -1020,6 +1043,9 @@ export function generateHTML(result: AnalysisResult): string {
            <button class="filter-btn" data-filter="external" id="filterExternal">
              <img src="${icons['package']}" class="icon-img inline" alt="package" style="filter: grayscale(100%);"> External <span class="count" id="countExternal"></span>
           </button>
+           <button class="filter-btn" data-filter="orphan" id="filterOrphan">
+             🗑 Orphan <span class="count" id="countOrphan"></span>
+          </button>
         </div>
         
         <button class="theme-toggle-btn" id="themeToggleBtn" title="Toggle Theme">
@@ -1099,6 +1125,14 @@ export function generateHTML(result: AnalysisResult): string {
           <div class="stat-value" id="statExternal">0</div>
           <div class="stat-label">External Packages</div>
         </div>
+        <div class="stat-card animate-in">
+          <div class="stat-value" id="statSize">0</div>
+          <div class="stat-label">Total Size</div>
+        </div>
+        <div class="stat-card animate-in">
+          <div class="stat-value" id="statOrphans">0</div>
+          <div class="stat-label">Orphan Files</div>
+        </div>
       </div>
 
       <!-- Detail Panel -->
@@ -1147,6 +1181,16 @@ export function generateHTML(result: AnalysisResult): string {
     let currentView = 'tree';
     let graphInitialized = false;
 
+    // ─── Formatting ───
+    function formatBytes(bytes, decimals = 1) {
+      if (!bytes || bytes === 0) return '0 Bytes';
+      const k = 1024;
+      const dm = decimals < 0 ? 0 : decimals;
+      const sizes = ['Bytes', 'KB', 'MB', 'GB', 'TB'];
+      const i = Math.floor(Math.log(bytes) / Math.log(k));
+      return parseFloat((bytes / Math.pow(k, i)).toFixed(dm)) + ' ' + sizes[i];
+    }
+
     // ─── Init ───
     function init() {
       // Set project name
@@ -1157,11 +1201,14 @@ export function generateHTML(result: AnalysisResult): string {
       document.getElementById('statImports').textContent = DATA.stats.totalImports;
       document.getElementById('statLocal').textContent = DATA.stats.totalLocalImports;
       document.getElementById('statExternal').textContent = DATA.stats.totalExternalPackages;
+      document.getElementById('statSize').textContent = formatBytes(DATA.stats.totalSize || 0);
+      document.getElementById('statOrphans').textContent = DATA.stats.orphanCount || 0;
 
       // Set filter counts
       document.getElementById('countAll').textContent = DATA.stats.totalFiles + DATA.stats.totalExternalPackages;
       document.getElementById('countLocal').textContent = DATA.stats.totalFiles;
       document.getElementById('countExternal').textContent = DATA.stats.totalExternalPackages;
+      document.getElementById('countOrphan').textContent = DATA.stats.orphanCount || 0;
 
       // Show circular dependencies
       if (DATA.stats.circularDependencies && DATA.stats.circularDependencies.length > 0) {
@@ -1191,6 +1238,7 @@ export function generateHTML(result: AnalysisResult): string {
       document.getElementById('filterAll').addEventListener('click', () => setFilter('all'));
       document.getElementById('filterLocal').addEventListener('click', () => setFilter('local'));
       document.getElementById('filterExternal').addEventListener('click', () => setFilter('external'));
+      document.getElementById('filterOrphan').addEventListener('click', () => setFilter('orphan'));
       document.getElementById('expandAllBtn').addEventListener('click', expandAll);
       document.getElementById('collapseAllBtn').addEventListener('click', collapseAll);
 
@@ -1265,6 +1313,16 @@ export function generateHTML(result: AnalysisResult): string {
       // Check if any child matches search
       const anyChildMatches = hasChildren && hasChildMatch(node);
 
+      // Filtering logic BEFORE early return
+      if (currentFilter === 'local' && node.type === 'external') return div;
+      if (currentFilter === 'local' && node.path === '__external__') return div;
+      if (currentFilter === 'external' && node.type !== 'external' && node.path !== '__external__') return div;
+      
+      if (currentFilter === 'orphan') {
+         if (node.path === '__external__' || node.type === 'external') return div;
+         if (!hasOrphanMatch(node)) return div;
+      }
+
       // If search active and nothing matches, hide
       if (searchQuery && !matchesSearch && !anyChildMatches) {
         div.style.display = 'none';
@@ -1318,6 +1376,19 @@ export function generateHTML(result: AnalysisResult): string {
         badge.className = 'tree-badge usage-count';
         badge.textContent = node.importedBy.length + ' used';
         badge.title = 'Used by ' + node.importedBy.length + ' files';
+        row.appendChild(badge);
+      }
+      if (node.isOrphan) {
+        const badge = document.createElement('span');
+        badge.className = 'tree-badge orphan';
+        badge.textContent = 'Orphan';
+        badge.title = 'Not imported by any file';
+        row.appendChild(badge);
+      }
+      if (node.size !== undefined) {
+        const badge = document.createElement('span');
+        badge.className = 'tree-badge size';
+        badge.textContent = formatBytes(node.size, 0);
         row.appendChild(badge);
       }
 
@@ -1386,6 +1457,15 @@ export function generateHTML(result: AnalysisResult): string {
       return false;
     }
 
+    function hasOrphanMatch(node) {
+      if (node.isOrphan) return true;
+      if (!node.children) return false;
+      for (const child of node.children) {
+        if (hasOrphanMatch(child)) return true;
+      }
+      return false;
+    }
+
     // ─── Detail Panel ───
     function showDetail(node) {
       const title = document.getElementById('detailTitle');
@@ -1394,6 +1474,13 @@ export function generateHTML(result: AnalysisResult): string {
       title.textContent = node.name;
 
       let html = '';
+      
+      if (node.isOrphan) {
+         html += '<div style="margin-bottom: 12px;"><span class="tree-badge orphan" style="font-size:12px; padding: 4px 8px;">🗑 Orphan (Unused)</span></div>';
+      }
+      if (node.size !== undefined) {
+         html += '<div style="margin-bottom: 12px; color: var(--text-muted); font-size: 13px;">File Size: <strong>' + formatBytes(node.size) + '</strong></div>';
+      }
 
       if (node.type === 'file' && node.imports) {
         const localImports = node.imports.filter(i => !i.isExternal);
@@ -1575,6 +1662,12 @@ export function generateHTML(result: AnalysisResult): string {
         const nodeColor = getComputedStyle(document.documentElement).getPropertyValue('--text-secondary').trim() || '#3f3f46';
         const extColor = getComputedStyle(document.documentElement).getPropertyValue('--text-primary').trim() || '#000';
         
+        let calculatedRadius = isEx ? 8 : 6;
+        if (!isEx && n.size !== undefined) {
+           // Scale radius smoothly between 4px and 24px based on size
+           calculatedRadius = Math.max(4, Math.min(24, 4 + Math.sqrt(n.size) / 15));
+        }
+        
         const nodeObj = {
           id,
           label: n.name,
@@ -1585,7 +1678,7 @@ export function generateHTML(result: AnalysisResult): string {
           x: (Math.random()-0.5)*canvas.width,
           y: (Math.random()-0.5)*canvas.height,
           vx: 0, vy: 0,
-          radius: isEx ? 8 : 6,
+          radius: calculatedRadius,
           color: isEx ? extColor : nodeColor,
           nodeRef: n
         };
@@ -1698,6 +1791,15 @@ export function generateHTML(result: AnalysisResult): string {
     function isNodeVisible(n) {
       if (currentFilter === 'local' && n.isExternal) return false;
       if (currentFilter === 'external' && !n.isExternal) return false;
+      if (currentFilter === 'orphan') {
+         // In graph view, show ONLY orphans and their clusters
+         // Since clusters are virtual, nodes must be strictly an orphan
+         if (n.type === 'directory') {
+            // we don't visualize directories directly as nodes anyway, but if we did
+            return false; 
+         }
+         return n.nodeRef && n.nodeRef.isOrphan;
+      }
       if (searchQuery && !n.label.toLowerCase().includes(searchQuery.toLowerCase())) return false;
       return true;
     }

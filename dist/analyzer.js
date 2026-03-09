@@ -35,6 +35,7 @@ var __importStar = (this && this.__importStar) || (function () {
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.analyze = analyze;
 const path = __importStar(require("path"));
+const fs = __importStar(require("fs"));
 const glob_1 = require("glob");
 const parser_1 = require("./parser");
 const resolver_1 = require("./resolver");
@@ -86,10 +87,19 @@ function analyze(options) {
     let totalImports = 0;
     let totalLocalImports = 0;
     let totalExternalImports = 0;
+    let totalSize = 0;
     // Phase 1: Parse all files and resolve imports
     for (const filePath of files) {
         const normalized = normalizePath(filePath);
         const relativePath = normalizePath(path.relative(projectRoot, filePath));
+        let fileSize = 0;
+        try {
+            fileSize = fs.statSync(filePath).size;
+        }
+        catch {
+            // Ignored
+        }
+        totalSize += fileSize;
         const importInfos = (0, parser_1.parseImports)(filePath);
         const edges = [];
         for (const info of importInfos) {
@@ -146,6 +156,8 @@ function analyze(options) {
             relativePath,
             imports: edges,
             importedBy: [],
+            size: fileSize,
+            isOrphan: false,
         });
     }
     // Phase 2: Build reverse references (importedBy)
@@ -160,8 +172,22 @@ function analyze(options) {
             }
         }
     }
-    // Phase 3: Detect circular dependencies
+    // Phase 3: Detect orphans
+    let orphanCount = 0;
+    for (const [, node] of fileNodes) {
+        if (node.importedBy.length === 0 && fileNodes.size > 1) {
+            node.isOrphan = true;
+            orphanCount++;
+        }
+    }
+    // Phase 4: Detect circular dependencies
     const circularDeps = detectCircularDependencies(fileNodes);
+    // Compute top 5 hotspot files (most imported local files)
+    const hotspots = Array.from(fileNodes.values())
+        .filter(n => n.importedBy.length > 0)
+        .sort((a, b) => b.importedBy.length - a.importedBy.length)
+        .slice(0, 5)
+        .map(n => ({ path: n.relativePath, importedByCount: n.importedBy.length }));
     return {
         projectRoot: normalizePath(projectRoot),
         files: fileNodes,
@@ -172,7 +198,10 @@ function analyze(options) {
             totalExternalPackages: externalPackages.size,
             totalLocalImports,
             totalExternalImports,
+            totalSize,
+            orphanCount,
             circularDependencies: circularDeps,
+            hotspots,
         },
     };
 }

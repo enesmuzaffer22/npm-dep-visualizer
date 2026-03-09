@@ -9,6 +9,8 @@ export interface FileNode {
   relativePath: string; // Relative to project root
   imports: DependencyEdge[];
   importedBy: string[]; // Files that import this file
+  size: number;         // File size in bytes
+  isOrphan: boolean;    // True if not imported by any file
 }
 
 export interface DependencyEdge {
@@ -34,7 +36,10 @@ export interface AnalysisResult {
     totalExternalPackages: number;
     totalLocalImports: number;
     totalExternalImports: number;
+    totalSize: number;    // Total size of all local files in bytes
+    orphanCount: number;  // Total number of orphan files
     circularDependencies: string[][];
+    hotspots: Array<{ path: string; importedByCount: number }>;
   };
 }
 
@@ -98,11 +103,20 @@ export function analyze(options: AnalyzerOptions): AnalysisResult {
   let totalImports = 0;
   let totalLocalImports = 0;
   let totalExternalImports = 0;
+  let totalSize = 0;
 
   // Phase 1: Parse all files and resolve imports
   for (const filePath of files) {
     const normalized = normalizePath(filePath);
     const relativePath = normalizePath(path.relative(projectRoot, filePath));
+
+    let fileSize = 0;
+    try {
+      fileSize = fs.statSync(filePath).size;
+    } catch {
+      // Ignored
+    }
+    totalSize += fileSize;
 
     const importInfos = parseImports(filePath);
     const edges: DependencyEdge[] = [];
@@ -165,6 +179,8 @@ export function analyze(options: AnalyzerOptions): AnalysisResult {
       relativePath,
       imports: edges,
       importedBy: [],
+      size: fileSize,
+      isOrphan: false,
     });
   }
 
@@ -181,8 +197,24 @@ export function analyze(options: AnalyzerOptions): AnalysisResult {
     }
   }
 
-  // Phase 3: Detect circular dependencies
+  // Phase 3: Detect orphans
+  let orphanCount = 0;
+  for (const [, node] of fileNodes) {
+    if (node.importedBy.length === 0 && fileNodes.size > 1) {
+      node.isOrphan = true;
+      orphanCount++;
+    }
+  }
+
+  // Phase 4: Detect circular dependencies
   const circularDeps = detectCircularDependencies(fileNodes);
+
+  // Compute top 5 hotspot files (most imported local files)
+  const hotspots = Array.from(fileNodes.values())
+    .filter(n => n.importedBy.length > 0)
+    .sort((a, b) => b.importedBy.length - a.importedBy.length)
+    .slice(0, 5)
+    .map(n => ({ path: n.relativePath, importedByCount: n.importedBy.length }));
 
   return {
     projectRoot: normalizePath(projectRoot),
@@ -194,7 +226,10 @@ export function analyze(options: AnalyzerOptions): AnalysisResult {
       totalExternalPackages: externalPackages.size,
       totalLocalImports,
       totalExternalImports,
+      totalSize,
+      orphanCount,
       circularDependencies: circularDeps,
+      hotspots,
     },
   };
 }
