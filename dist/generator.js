@@ -173,8 +173,8 @@ function generateHTML(result) {
       font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
       background: var(--bg-primary);
       color: var(--text-primary);
-      min-height: 100vh;
-      overflow-x: hidden;
+      height: 100vh;
+      overflow: hidden;
     }
 
     /* ─── Header ─── */
@@ -338,7 +338,8 @@ function generateHTML(result) {
       display: grid;
       grid-template-columns: 1fr 480px;
       gap: 24px;
-      min-height: calc(100vh - 84px);
+      height: calc(100vh - 84px);
+      overflow: hidden;
     }
 
     @media (max-width: 1100px) {
@@ -352,6 +353,20 @@ function generateHTML(result) {
       display: flex;
       flex-direction: column;
       gap: 20px;
+      height: 100%;
+      overflow-y: auto;
+      padding-right: 4px;
+    }
+    
+    .sidebar::-webkit-scrollbar {
+      width: 6px;
+    }
+    .sidebar::-webkit-scrollbar-track {
+      background: transparent;
+    }
+    .sidebar::-webkit-scrollbar-thumb {
+      background: var(--border-color);
+      border-radius: 3px;
     }
 
     .stats-grid {
@@ -401,6 +416,9 @@ function generateHTML(result) {
       border-radius: var(--radius-md);
       overflow: hidden;
       flex: 1;
+      display: flex;
+      flex-direction: column;
+      min-height: 0;
     }
 
     .detail-panel-header {
@@ -418,8 +436,8 @@ function generateHTML(result) {
 
     .detail-panel-content {
       padding: 20px;
-      max-height: 500px;
       overflow-y: auto;
+      flex: 1;
     }
 
     .detail-panel-content::-webkit-scrollbar {
@@ -544,6 +562,9 @@ function generateHTML(result) {
       border: 1px solid var(--border-color);
       border-radius: var(--radius-md);
       overflow: hidden;
+      display: flex;
+      flex-direction: column;
+      height: 100%;
     }
 
     .tree-panel-header {
@@ -586,8 +607,8 @@ function generateHTML(result) {
 
     .tree-body {
       padding: 12px 8px;
-      max-height: calc(100vh - 200px);
       overflow-y: auto;
+      flex: 1;
     }
 
     .tree-body::-webkit-scrollbar {
@@ -733,7 +754,168 @@ function generateHTML(result) {
       border-radius: 3px;
     }
 
-    /* ─── Animations ─── */
+    /* ─── View Toggle ─── */
+    .view-toggle {
+      display: flex;
+      background: var(--bg-tertiary);
+      border: 1px solid var(--border-color);
+      border-radius: var(--radius-sm);
+      overflow: hidden;
+    }
+
+    .view-toggle-btn {
+      padding: 6px 16px;
+      border: none;
+      background: transparent;
+      color: var(--text-muted);
+      font-family: 'Inter', sans-serif;
+      font-size: 12px;
+      font-weight: 500;
+      cursor: pointer;
+      transition: all 0.2s ease;
+      display: flex;
+      align-items: center;
+      gap: 6px;
+    }
+
+    .view-toggle-btn:hover {
+      color: var(--text-secondary);
+      background: var(--bg-hover);
+    }
+
+    .view-toggle-btn.active {
+      background: rgba(122,162,247,0.15);
+      color: var(--accent-blue);
+    }
+
+    /* ─── Graph Panel ─── */
+    .graph-panel {
+      background: var(--bg-secondary);
+      border: 1px solid var(--border-color);
+      border-radius: var(--radius-md);
+      overflow: hidden;
+      display: none;
+      position: relative;
+    }
+
+    .graph-panel.visible {
+      display: block;
+    }
+
+    .graph-panel-header {
+      padding: 16px 20px;
+      border-bottom: 1px solid var(--border-color);
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+    }
+
+    .graph-panel-header h2 {
+      font-size: 15px;
+      font-weight: 600;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+
+    .graph-canvas-container {
+      width: 100%;
+      flex: 1;
+      position: relative;
+      cursor: grab;
+      overflow: hidden;
+    }
+
+    .graph-canvas-container:active {
+      cursor: grabbing;
+    }
+
+    .graph-canvas-container canvas {
+      width: 100%;
+      height: 100%;
+    }
+
+    .graph-legend {
+      position: absolute;
+      bottom: 16px;
+      left: 16px;
+      background: var(--bg-tertiary);
+      border: 1px solid var(--border-color);
+      border-radius: var(--radius-sm);
+      padding: 12px 16px;
+      font-size: 11px;
+      display: flex;
+      flex-direction: column;
+      gap: 6px;
+    }
+
+    .graph-legend-item {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      color: var(--text-secondary);
+    }
+
+    .graph-legend-dot {
+      width: 10px;
+      height: 10px;
+      border-radius: 50%;
+      flex-shrink: 0;
+    }
+
+    .graph-controls {
+      position: absolute;
+      top: 16px;
+      right: 16px;
+      display: flex;
+      flex-direction: column;
+      gap: 4px;
+    }
+
+    .graph-control-btn {
+      width: 32px;
+      height: 32px;
+      border: 1px solid var(--border-color);
+      border-radius: var(--radius-sm);
+      background: var(--bg-tertiary);
+      color: var(--text-secondary);
+      font-size: 16px;
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      transition: all 0.15s ease;
+    }
+
+    .graph-control-btn:hover {
+      background: var(--bg-hover);
+      border-color: var(--border-accent);
+    }
+
+    .graph-tooltip {
+      position: absolute;
+      background: var(--bg-surface);
+      border: 1px solid var(--border-accent);
+      border-radius: var(--radius-sm);
+      padding: 8px 12px;
+      font-size: 12px;
+      font-family: 'JetBrains Mono', monospace;
+      color: var(--text-primary);
+      pointer-events: none;
+      z-index: 10;
+      max-width: 300px;
+      box-shadow: var(--shadow-md);
+      display: none;
+    }
+
+    /* --- Main Column --- */
+    .main-column {
+      display: flex;
+      flex-direction: column;
+      gap: 0;
+      height: 100%;
+      overflow: hidden;
+    }
     @keyframes fadeIn {
       from { opacity: 0; transform: translateY(8px); }
       to { opacity: 1; transform: translateY(0); }
@@ -792,16 +974,50 @@ function generateHTML(result) {
 
   <!-- Main Content -->
   <div class="main-container">
-    <!-- Tree Panel -->
-    <div class="tree-panel">
-      <div class="tree-panel-header">
-         <h2><img src="${icons['open-folder']}" class="icon-img" alt="tree" style="width:20px;height:20px;margin-right:6px;"> Dependency Tree</h2>
-        <div class="tree-actions">
-          <button class="tree-action-btn" id="expandAllBtn">Expand All</button>
-          <button class="tree-action-btn" id="collapseAllBtn">Collapse All</button>
+    <!-- View Toggle -->
+    <div class="main-column">
+      <div style="display: flex; align-items: center; gap: 12px; margin-bottom: 16px; flex-shrink: 0;">
+        <div class="view-toggle">
+          <button class="view-toggle-btn active" id="viewTreeBtn">📋 Tree View</button>
+          <button class="view-toggle-btn" id="viewGraphBtn">🔀 Graph View</button>
         </div>
       </div>
-      <div class="tree-body" id="treeBody"></div>
+
+      <!-- Tree Panel -->
+      <div class="tree-panel" id="treePanelContainer">
+        <div class="tree-panel-header">
+          <h2><img src="${icons['open-folder']}" class="icon-img" alt="tree" style="width:20px;height:20px;margin-right:6px;"> Dependency Tree</h2>
+          <div class="tree-actions">
+            <button class="tree-action-btn" id="expandAllBtn">Expand All</button>
+            <button class="tree-action-btn" id="collapseAllBtn">Collapse All</button>
+          </div>
+        </div>
+        <div class="tree-body" id="treeBody"></div>
+      </div>
+
+      <!-- Graph Panel -->
+      <div class="graph-panel" id="graphPanelContainer" style="display: none; flex-direction: column; height: 100%;">
+        <div class="graph-panel-header">
+          <h2><img src="${icons['open-folder']}" class="icon-img" alt="graph" style="width:20px;height:20px;margin-right:6px;"> Dependency Graph</h2>
+          <div class="tree-actions">
+            <button class="tree-action-btn" id="resetGraphBtn">Reset View</button>
+          </div>
+        </div>
+        <div class="graph-canvas-container" id="graphContainer">
+          <canvas id="graphCanvas"></canvas>
+          <div class="graph-tooltip" id="graphTooltip"></div>
+          <div class="graph-controls">
+            <button class="graph-control-btn" id="zoomInBtn" title="Zoom In">+</button>
+            <button class="graph-control-btn" id="zoomOutBtn" title="Zoom Out">−</button>
+            <button class="graph-control-btn" id="fitBtn" title="Fit to Screen">⊡</button>
+          </div>
+          <div class="graph-legend">
+            <div class="graph-legend-item"><div class="graph-legend-dot" style="background: var(--accent-blue);"></div> Local File</div>
+            <div class="graph-legend-item"><div class="graph-legend-dot" style="background: var(--accent-orange);"></div> External Package</div>
+            <div class="graph-legend-item"><div class="graph-legend-dot" style="border: 2px dashed var(--accent-purple); background: transparent;"></div> Directory Cluster</div>
+          </div>
+        </div>
+      </div>
     </div>
 
     <!-- Sidebar -->
@@ -869,6 +1085,8 @@ function generateHTML(result) {
     let searchQuery = '';
     let selectedNode = null;
     const expandedNodes = new Set();
+    let currentView = 'tree';
+    let graphInitialized = false;
 
     // ─── Init ───
     function init() {
@@ -916,6 +1134,32 @@ function generateHTML(result) {
       document.getElementById('filterExternal').addEventListener('click', () => setFilter('external'));
       document.getElementById('expandAllBtn').addEventListener('click', expandAll);
       document.getElementById('collapseAllBtn').addEventListener('click', collapseAll);
+
+      // View Toggles
+      document.getElementById('viewTreeBtn').addEventListener('click', () => setView('tree'));
+      document.getElementById('viewGraphBtn').addEventListener('click', () => setView('graph'));
+    }
+
+    function setView(view) {
+      if (currentView === view) return;
+      currentView = view;
+      document.getElementById('viewTreeBtn').classList.toggle('active', view === 'tree');
+      document.getElementById('viewGraphBtn').classList.toggle('active', view === 'graph');
+      
+      const treePanel = document.getElementById('treePanelContainer');
+      const graphPanel = document.getElementById('graphPanelContainer');
+      
+      if (view === 'tree') {
+        treePanel.style.display = 'flex';
+        graphPanel.style.display = 'none';
+      } else {
+        treePanel.style.display = 'none';
+        graphPanel.style.display = 'flex';
+        if (!graphInitialized) {
+          initGraph();
+          graphInitialized = true;
+        }
+      }
     }
 
     // ─── Tree Rendering ───
@@ -1192,6 +1436,391 @@ function generateHTML(result) {
           addAllPaths(child);
         }
       }
+    }
+
+    // ─── Graph Engine ───
+    let graph = { nodes: [], edges: [], clusters: {} };
+    let canvas, ctx;
+    let transform = { x: 0, y: 0, k: 1 };
+    let isDragging = false;
+    let dragStart = { x: 0, y: 0 };
+    let draggedNode = null;
+    let hoveredNode = null;
+    let animationFrameId;
+
+    function initGraph() {
+      canvas = document.getElementById('graphCanvas');
+      ctx = canvas.getContext('2d');
+      
+      const resizeContent = () => {
+        const rect = canvas.parentElement.getBoundingClientRect();
+        canvas.width = rect.width;
+        canvas.height = rect.height;
+        if (graph.nodes.length > 0) drawGraph();
+      };
+      window.addEventListener('resize', resizeContent);
+      resizeContent();
+      
+      canvas.addEventListener('mousedown', onGraphMouseDown);
+      window.addEventListener('mousemove', onGraphMouseMove);
+      window.addEventListener('mouseup', onGraphMouseUp);
+      canvas.addEventListener('wheel', onGraphWheel, { passive: false });
+      
+      document.getElementById('resetGraphBtn').addEventListener('click', fitGraph);
+      document.getElementById('zoomInBtn').addEventListener('click', () => { zoom(1.2); });
+      document.getElementById('zoomOutBtn').addEventListener('click', () => { zoom(0.8); });
+      document.getElementById('fitBtn').addEventListener('click', fitGraph);
+      
+      buildGraphData();
+      fitGraph();
+      startSimulation();
+    }
+
+    function buildGraphData() {
+      const nodesMap = new Map();
+      graph.nodes = [];
+      graph.edges = [];
+      graph.clusters = {};
+      
+      function addNode(n) {
+        if (n.type === 'directory') {
+          for (const child of n.children) addNode(child);
+          return;
+        }
+        
+        const isEx = n.type === 'external';
+        const id = n.path;
+        const cluster = isEx ? '__external__' : (id.substring(0, id.lastIndexOf('/')) || '/');
+        
+        const nodeObj = {
+          id,
+          label: n.name,
+          type: n.type,
+          isExternal: isEx,
+          cluster,
+          imports: n.imports || [],
+          x: (Math.random()-0.5)*canvas.width,
+          y: (Math.random()-0.5)*canvas.height,
+          vx: 0, vy: 0,
+          radius: isEx ? 8 : 6,
+          color: isEx ? '#e0af68' : '#7aa2f7',
+          nodeRef: n
+        };
+        nodesMap.set(id, nodeObj);
+        graph.nodes.push(nodeObj);
+        
+        if (!graph.clusters[cluster]) graph.clusters[cluster] = [];
+        graph.clusters[cluster].push(nodeObj);
+      }
+      
+      addNode(DATA.root);
+      addNode(DATA.externalNode);
+      
+      for (const node of graph.nodes) {
+        for (const imp of node.imports) {
+          const targetId = imp.resolved ? imp.resolved : ('__external__/' + imp.source);
+          let targetNode = nodesMap.get(targetId);
+          if (!targetNode && imp.isExternal) {
+             for (const n of graph.nodes) { 
+                if (n.isExternal && n.label === imp.source) { targetNode = n; break; } 
+             }
+          }
+          if (targetNode) {
+            graph.edges.push({ source: node, target: targetNode });
+          }
+        }
+      }
+    }
+
+    function startSimulation() {
+      if (animationFrameId) cancelAnimationFrame(animationFrameId);
+      
+      // Pre-calculate positions synchronously for a static graph
+      let alpha = 1;
+      const decay = 0.96;
+      
+      // Run N iterations to settle the graph
+      for (let i = 0; i < 150; i++) {
+        alpha *= decay;
+        computeForces(alpha);
+        updatePositions();
+      }
+      
+      // Final render
+      drawGraph();
+    }
+
+    function computeForces(alpha) {
+      const k = 0.1; 
+      const push = 3000; 
+      const centerForce = 0.02;
+      const clusterForce = 1.2;
+      
+      for(let i=0; i<graph.nodes.length; i++) {
+        for(let j=i+1; j<graph.nodes.length; j++) {
+          const n1 = graph.nodes[i];
+          const n2 = graph.nodes[j];
+          let dx = n2.x - n1.x;
+          let dy = n2.y - n1.y;
+          if(dx===0 && dy===0) { dx=(Math.random()-0.5); dy=(Math.random()-0.5); }
+          const distSq = dx*dx + dy*dy;
+          
+          if (n1.cluster === n2.cluster && distSq < 40000) {
+            const pull = clusterForce * alpha;
+            n1.vx += dx * pull * 0.01;
+            n1.vy += dy * pull * 0.01;
+            n2.vx -= dx * pull * 0.01;
+            n2.vy -= dy * pull * 0.01;
+          }
+          
+          const force = push / distSq * alpha;
+          const dist = Math.sqrt(distSq);
+          n1.vx -= (dx/dist) * force;
+          n1.vy -= (dy/dist) * force;
+          n2.vx += (dx/dist) * force;
+          n2.vy += (dy/dist) * force;
+        }
+      }
+      
+      for(const e of graph.edges) {
+        const dx = e.target.x - e.source.x;
+        const dy = e.target.y - e.source.y;
+        const dist = Math.sqrt(dx*dx + dy*dy) || 1;
+        const targetDist = 80;
+        const force = (dist - targetDist) * k * alpha;
+        
+        e.source.vx += (dx/dist) * force;
+        e.source.vy += (dy/dist) * force;
+        e.target.vx -= (dx/dist) * force;
+        e.target.vy -= (dy/dist) * force;
+      }
+      
+      for(const n of graph.nodes) {
+        n.vx -= n.x * centerForce * alpha;
+        n.vy -= n.y * centerForce * alpha;
+      }
+    }
+
+    function updatePositions() {
+      const damp = 0.6;
+      for(const n of graph.nodes) {
+        if (n === draggedNode) continue;
+        n.vx *= damp;
+        n.vy *= damp;
+        n.x += n.vx;
+        n.y += n.vy;
+      }
+    }
+
+    function drawGraph() {
+      ctx.clearRect(0, 0, canvas.width, canvas.height);
+      ctx.save();
+      ctx.translate(canvas.width/2 + transform.x, canvas.height/2 + transform.y);
+      ctx.scale(transform.k, transform.k);
+      
+      ctx.lineWidth = 1;
+      for(const e of graph.edges) {
+        let isHighlight = false;
+        if (hoveredNode && (e.source === hoveredNode || e.target === hoveredNode)) isHighlight = true;
+        
+        ctx.strokeStyle = isHighlight ? '#bb9af7' : 'rgba(108, 108, 138, 0.3)';
+        ctx.lineWidth = isHighlight ? 2 / transform.k : 1 / transform.k;
+        if (hoveredNode && !isHighlight) ctx.strokeStyle = 'rgba(108, 108, 138, 0.05)';
+        
+        ctx.beginPath();
+        ctx.moveTo(e.source.x, e.source.y);
+        ctx.lineTo(e.target.x, e.target.y);
+        ctx.stroke();
+        
+        if (isHighlight) drawArrowHead(ctx, e.source.x, e.source.y, e.target.x, e.target.y, e.target.radius + 2);
+      }
+      
+      for(const n of graph.nodes) {
+        let opacity = 1;
+        if (hoveredNode && hoveredNode !== n && !isConnected(n, hoveredNode)) opacity = 0.2;
+        
+        ctx.beginPath();
+        ctx.arc(n.x, n.y, n.radius, 0, Math.PI*2);
+        ctx.fillStyle = n.color;
+        ctx.globalAlpha = opacity;
+        ctx.fill();
+        ctx.strokeStyle = '#181825';
+        ctx.lineWidth = 2 / transform.k;
+        ctx.stroke();
+        
+        if (n === hoveredNode || transform.k > 1.2) {
+          ctx.fillStyle = '#e2e2f0';
+          ctx.font = (10/transform.k) + 'px "JetBrains Mono"';
+          ctx.textAlign = 'center';
+          ctx.textBaseline = 'top';
+          ctx.fillText(n.label, n.x, n.y + n.radius + 4/transform.k);
+        }
+      }
+      
+      ctx.restore();
+    }
+
+    function drawArrowHead(ctx, x1, y1, x2, y2, radius) {
+      const dx = x2 - x1;
+      const dy = y2 - y1;
+      const angle = Math.atan2(dy, dx);
+      const len = 8 / transform.k;
+      const tx = x2 - Math.cos(angle) * radius;
+      const ty = y2 - Math.sin(angle) * radius;
+      
+      ctx.beginPath();
+      ctx.moveTo(tx, ty);
+      ctx.lineTo(tx - len * Math.cos(angle - Math.PI/6), ty - len * Math.sin(angle - Math.PI/6));
+      ctx.lineTo(tx - len * Math.cos(angle + Math.PI/6), ty - len * Math.sin(angle + Math.PI/6));
+      ctx.fillStyle = ctx.strokeStyle;
+      ctx.fill();
+    }
+
+    function isConnected(a, b) {
+      for(const e of graph.edges) {
+        if ((e.source === a && e.target === b) || (e.source === b && e.target === a)) return true;
+      }
+      return false;
+    }
+
+    function getPointerPos(e) {
+      const rect = canvas.getBoundingClientRect();
+      return {
+        x: (e.clientX - rect.left - canvas.width/2 - transform.x) / transform.k,
+        y: (e.clientY - rect.top - canvas.height/2 - transform.y) / transform.k
+      };
+    }
+
+    function onGraphMouseDown(e) {
+      if (currentView !== 'graph') return;
+      const p = getPointerPos(e);
+      let found = null;
+      for(let i=graph.nodes.length-1; i>=0; i--) {
+         const n = graph.nodes[i];
+         const dx=p.x-n.x, dy=p.y-n.y;
+         if(dx*dx+dy*dy < (n.radius+5/transform.k)*(n.radius+5/transform.k)) { found=n; break; }
+      }
+      
+      if (found) {
+        draggedNode = found;
+      } else {
+        isDragging = true;
+        dragStart = { x: e.clientX, y: e.clientY };
+      }
+    }
+
+    function onGraphMouseMove(e) {
+      if (currentView !== 'graph') return;
+      const p = getPointerPos(e);
+      
+      if (draggedNode) {
+        draggedNode.x = p.x;
+        draggedNode.y = p.y;
+        drawGraph();
+      } else if (isDragging) {
+        transform.x += (e.clientX - dragStart.x);
+        transform.y += (e.clientY - dragStart.y);
+        dragStart = { x: e.clientX, y: e.clientY };
+        drawGraph();
+      } else {
+         let found = null;
+         for(let i=graph.nodes.length-1; i>=0; i--) {
+           const n = graph.nodes[i];
+           const dx=p.x-n.x, dy=p.y-n.y;
+           if(dx*dx+dy*dy < (n.radius+5/transform.k)*(n.radius+5/transform.k)) { found=n; break; }
+         }
+         
+         if (found !== hoveredNode) {
+           hoveredNode = found;
+           updateTooltip(e, found);
+           drawGraph();
+           canvas.style.cursor = found ? 'pointer' : 'grab';
+         } else if (found) {
+           updateTooltip(e, found);
+         }
+      }
+    }
+
+    function onGraphMouseUp(e) {
+      if (draggedNode) {
+         if (draggedNode === hoveredNode) {
+            selectedNode = draggedNode.id;
+            showDetail(draggedNode.nodeRef);
+         }
+         draggedNode = null;
+      }
+      isDragging = false;
+    }
+
+    function onGraphWheel(e) {
+      if (currentView !== 'graph') return;
+      e.preventDefault();
+      const zoomFactor = e.deltaY > 0 ? 0.9 : 1.1;
+      zoom(zoomFactor, e.clientX, e.clientY);
+    }
+
+    function zoom(factor, cx, cy) {
+      if (cx === undefined) {
+         const rect = canvas.getBoundingClientRect();
+         cx = rect.left + rect.width/2;
+         cy = rect.top + rect.height/2;
+      }
+      
+      const rect = canvas.getBoundingClientRect();
+      const px = cx - rect.left - canvas.width/2 - transform.x;
+      const py = cy - rect.top - canvas.height/2 - transform.y;
+      
+      const newK = Math.max(0.1, Math.min(transform.k * factor, 5));
+      const scaleChange = newK - transform.k;
+      
+      transform.x -= px * (scaleChange / transform.k);
+      transform.y -= py * (scaleChange / transform.k);
+      transform.k = newK;
+      
+      drawGraph();
+    }
+
+    function fitGraph() {
+      if (graph.nodes.length === 0) return;
+      let minX = Infinity, maxX = -Infinity, minY = Infinity, maxY = -Infinity;
+      for(const n of graph.nodes) {
+        if (n.x < minX) minX = n.x;
+        if (n.x > maxX) maxX = n.x;
+        if (n.y < minY) minY = n.y;
+        if (n.y > maxY) maxY = n.y;
+      }
+      
+      const width = Math.max(maxX - minX, 100);
+      const height = Math.max(maxY - minY, 100);
+      
+      // Calculate center of graph bounding box
+      const cx = (minX + maxX)/2;
+      const cy = (minY + maxY)/2;
+      
+      transform.x = -cx;
+      transform.y = -cy;
+      
+      const scaleX = canvas.width / (width + 100);
+      const scaleY = canvas.height / (height + 100);
+      transform.k = Math.max(0.2, Math.min(scaleX, scaleY, 1.5));
+      
+      drawGraph();
+    }
+
+    function updateTooltip(e, node) {
+      const tooltip = document.getElementById('graphTooltip');
+      if (!node) {
+        tooltip.style.display = 'none';
+        return;
+      }
+      
+      tooltip.innerHTML = '<strong>' + escapeHtml(node.label) + '</strong><br>' +
+      '<span style="color:var(--text-muted)">' + (node.isExternal ? 'External Package' : 'Local File') + '</span><br>' +
+      'Imports: ' + node.imports.length;
+      
+      tooltip.style.display = 'block';
+      tooltip.style.left = (e.clientX - canvas.getBoundingClientRect().left + 15) + 'px';
+      tooltip.style.top = (e.clientY - canvas.getBoundingClientRect().top + 15) + 'px';
     }
 
     // ─── Start ───
